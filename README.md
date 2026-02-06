@@ -76,23 +76,47 @@ in this current aws amplify project, I'd like to add a new model that represents
 
 ## Next, replace hard-coded response with values in Dynamo document representing the root folder
 
+### add the first GET /files functionality to introduce all the dependencies and get it working with Dynamo
+
 I'd like to update the files-handler API and associated lambda function to remove the existing hard-coded JSON response and leverage the new models, "FileFolder" and "File" to handle the following HTTP/REST requests:
 
-`GET {API_URL}/files`: returns same JSON structure as current hard-coded return, but using the provided File and FileFolder models defined in resource.ts file. The return JSON structure is as follows:
+`GET {API_URL}/files`: returns same JSON structure as current hard-coded return, but using the provided File and FileFolder models defined in resource.ts file. The return JSON structure for '/files' request is from the 'files' property of FileFolder and returned in same structure as currently:
+
 [
     {
       id: '/Code',
-      date: new Date(2023, 11, 2, 17, 25),
+      date: lastUpdatedDate,
       type: 'folder',
     },
     {
       id: '/Music',
-      date: new Date(2023, 11, 1, 14, 45),
+      date: lastUpdatedDate,
       type: 'folder',
     },
 ]
 
-`POST /files/{id}`: Creates a new File entry of type folder from the 'id' provided in the uri and the 2 properties in the provided body containing a JSON document with the following structure:
+if the 'files' property of FileFolder is empty, I'd like to pre populate with sample data: one sample text file named 'sample.txt' with a size: 8 and a 'text' value of: 'This is a sample text file'. Also, I'd like to pre-populate with  one sample folder named 'sample'.
+
+### GET /info
+
+update the files-handler API and associated lambda function to handle GET /info request:
+
+`GET {API_URL}/info`
+
+It should return a hard coded response with the following JSON document as the body:
+
+{
+    "free": 982929299222,
+    "total": 1995218165760,
+    "used": 1067712249856
+}
+
+
+### now add the handler for creating folders via a POST method
+
+Add a new function to the file-handler lambda to handle the following POST request: `POST /files/{id}`: 
+
+This creates a new File entry of type folder from the 'id' provided in the uri and the 2 properties in the provided body of the POST containing a JSON document with the following structure:
 {
     name: "folder name",
 	type: "folder"
@@ -108,6 +132,7 @@ await client.models.File.create({
   lastUpdatedDate: new Date().toISOString(),
 });
 
+`POST /upload`: 'id' is provided as a query parameter in the POST uri. The body of the request is a multipart form.
 
 
 `PUT /files/{id}`: Finds the 'File' database entry with matching id and updates the model 'name' property.

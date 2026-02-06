@@ -54,6 +54,10 @@ const lambdaIntegration = new LambdaIntegration(
 const filesResource = apiGateway.root.addResource('files');
 filesResource.addMethod('GET', lambdaIntegration);
 
+// Add /info endpoint
+const infoResource = apiGateway.root.addResource('info');
+infoResource.addMethod('GET', lambdaIntegration);
+
 // Add outputs
 backend.addOutput({
   custom: {

@@ -7,11 +7,61 @@ import outputs from "../../../amplify_outputs.json";
 // Configure Amplify
 Amplify.configure(outputs);
 
+/***
+ * In sandbox mode, we can use `amplify_outputs.json`, 
+ * which won't be available in the Lambda runtime.
+Amplify.configure(
+  {
+    API: {
+      GraphQL: {
+        endpoint: process.env.AMPLIFY_DATA_GRAPHQL_ENDPOINT || '',
+        region: process.env.AWS_REGION || 'us-east-1',
+        defaultAuthMode: 'identityPool',
+      },
+    },
+  },
+  {
+    Auth: {
+      credentialsProvider: {
+        getCredentialsAndIdentityId: async () => ({
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+            sessionToken: process.env.AWS_SESSION_TOKEN,
+          },
+        }),
+        clearCredentialsAndIdentityId: () => {
+          //noop
+        },
+      },
+    },
+  }
+);
+ */
+
 const client = generateClient<Schema>();
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   console.log('event', event);
 
+  // Handle /info endpoint
+  if (event.path === '/dev/info' || event.resource === '/info') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        free: 982929299222,
+        total: 1995218165760,
+        used: 1067712249856,
+      }),
+    };
+  }
+
+  // Handle /files endpoint
   try {
     // Query for the root FileFolder
     const { data: fileFolders } = await client.models.FileFolder.list();
