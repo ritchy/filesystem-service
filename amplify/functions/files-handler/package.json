@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@types/aws-lambda": "^8.10.145"
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^20.0.0",
+    "aws-amplify": "^6.0.0",
+    "aws-amplify/adapter-core": "^1.0.0"
   }
 }

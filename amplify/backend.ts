@@ -12,6 +12,20 @@ const backend = defineBackend({
   filesHandler,
 });
 
+// Add data environment variables to the function
+backend.filesHandler.addEnvironment('AMPLIFY_DATA_GRAPHQL_ENDPOINT', backend.data.resources.cfnResources.cfnGraphqlApi.attrGraphQlUrl);
+
+// Grant Lambda access to AppSync
+import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
+
+backend.filesHandler.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    effect: Effect.ALLOW,
+    actions: ['appsync:GraphQL'],
+    resources: [`${backend.data.resources.cfnResources.cfnGraphqlApi.attrArn}/*`],
+  })
+);
+
 // Create API Gateway REST API
 const filesApi = backend.createStack('files-api');
 
