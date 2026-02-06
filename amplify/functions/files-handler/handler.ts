@@ -32,33 +32,10 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       });
 
       if (newFileFolder) {
-        // Create sample text file
-        await client.models.File.create({
-          name: 'sample.txt',
-          type: 'file',
-          size: 0,
-          text: '',
-          createdDate: now,
-          lastUpdatedDate: now,
-          fileFolderId: newFileFolder.id,
-        });
-
-        // Create sample folder
-        await client.models.File.create({
-          name: 'sample',
-          type: 'folder',
-          size: 0,
-          createdDate: now,
-          lastUpdatedDate: now,
-          fileFolderId: newFileFolder.id,
-        });
-
         fileFolder = newFileFolder;
+      } else {
+        throw new Error('Failed to create or retrieve FileFolder');
       }
-    }
-
-    if (!fileFolder) {
-      throw new Error('Failed to create or retrieve FileFolder');
     }
 
     // Get all files for this FileFolder
