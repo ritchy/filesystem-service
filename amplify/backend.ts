@@ -58,6 +58,10 @@ filesResource.addMethod('GET', lambdaIntegration);
 const infoResource = apiGateway.root.addResource('info');
 infoResource.addMethod('GET', lambdaIntegration);
 
+// Add /direct endpoint
+const directResource = apiGateway.root.addResource('direct');
+directResource.addMethod('GET', lambdaIntegration);
+
 // Add outputs
 backend.addOutput({
   custom: {

@@ -7,9 +7,15 @@ import outputs from "../../../amplify_outputs.json";
 // Configure Amplify
 Amplify.configure(outputs);
 
-/***
- * In sandbox mode, we can use `amplify_outputs.json`, 
+/**
+ * // Configure Amplify
+ *  Amplify.configure(outputs);
+ *
+ * In sandbox mode, we can use `amplify_outputs.json`,
  * which won't be available in the Lambda runtime.
+ * To work around this, we can set the necessary environment variables in the backend.ts file
+ * and use those to configure Amplify here.
+ *
 Amplify.configure(
   {
     API: {
@@ -31,13 +37,13 @@ Amplify.configure(
           },
         }),
         clearCredentialsAndIdentityId: () => {
-          //noop
+          // noop
         },
       },
     },
   }
 );
- */
+/**/
 
 const client = generateClient<Schema>();
 
@@ -59,6 +65,63 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         used: 1067712249856,
       }),
     };
+  }
+
+  // Handle /direct endpoint
+  if (event.path === '/dev/direct' || event.resource === '/direct') {
+    try {
+      // Get the id from query parameters
+      const id = event.queryStringParameters?.id;
+
+      if (!id) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing id parameter' }),
+        };
+      }
+
+      // Query the File by id
+      const { data: file } = await client.models.File.get({ id });
+
+      if (!file) {
+        return {
+          statusCode: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'text/plain',
+          },
+          body: 'empty',
+        };
+      }
+
+      // Return the text value or empty string
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'text/plain',
+        },
+        body: file.text || 'empty',
+      };
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'text/plain',
+        },
+        body: '',
+      };
+    }
   }
 
   // Handle /files endpoint
@@ -89,7 +152,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     }
 
     // Get all files for this FileFolder
-    const { data: files } = await client.models.File.list({
+    let { data: files } = await client.models.File.list({
       filter: {
         fileFolderId: {
           eq: fileFolder.id,
@@ -139,37 +202,14 @@ export const handler: APIGatewayProxyHandler = async (event) => {
           },
         },
       });
-
-      // Format and return the response
-      const formattedFiles = (newFiles || []).map((file) => {
-        const result: any = {
-          id: `/${file.name}`,
-          date: new Date(file.lastUpdatedDate),
-          type: file.type,
-        };
-
-        if (file.type === 'file' && file.size !== null && file.size !== undefined) {
-          result.size = file.size;
-        }
-
-        return result;
-      });
-
-      return {
-        statusCode: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': '*',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formattedFiles),
-      };
+      files = newFiles
     }
 
     // Format the files to match the expected response structure
     const formattedFiles = files.map((file) => {
       const result: any = {
         id: `/${file.name}`,
+        //id: `${file.id}`,
         date: new Date(file.lastUpdatedDate),
         type: file.type,
       };
