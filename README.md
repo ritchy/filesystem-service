@@ -50,6 +50,42 @@ This is an AWS Amplify v2 project. I'd like to add an AWS API Gateway deployment
 
 - Once deployed, you'll get the API URL in the outputs which you can use to call: `GET {API_URL}/files`
 
+## Amplify configuration during development will differ from production.
+
+### Development 
+
+import outputs from "../../../amplify_outputs.json";
+Amplify.configure(outputs);
+
+### Production
+
+Amplify.configure(
+  {
+    API: {
+      GraphQL: {
+        endpoint: process.env.AMPLIFY_DATA_GRAPHQL_ENDPOINT || '',
+        region: process.env.AWS_REGION || 'us-east-1',
+        defaultAuthMode: 'identityPool',
+      },
+    },
+  },
+  {
+    Auth: {
+      credentialsProvider: {
+        getCredentialsAndIdentityId: async () => ({
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+            sessionToken: process.env.AWS_SESSION_TOKEN,
+          },
+        }),
+        clearCredentialsAndIdentityId: () => {
+          /* noop */
+        },
+      },
+    },
+  }
+);
 
 ## Create Dynamo model entries representing the root folder and subsequent filesystem
 
@@ -111,6 +147,12 @@ It should return a hard coded response with the following JSON document as the b
     "used": 1067712249856
 }
 
+### /direct?id=%2Fsample.txt
+
+Add a new function to the file-handler lambda to handle the following GET request: `GET /direct?id={id}`.
+This finds the associated File entry with the matching id and returns the 'text' value or an empty string
+if it's missing.
+
 
 ### now add the handler for creating folders via a POST method
 
@@ -134,8 +176,10 @@ await client.models.File.create({
 
 `POST /upload`: 'id' is provided as a query parameter in the POST uri. The body of the request is a multipart form.
 
+### Rename a file or folder PUT /files/{id}
 
-`PUT /files/{id}`: Finds the 'File' database entry with matching id and updates the model 'name' property.
+Create a new lambda function to handle the following PUT request: `PUT /files/{id}`: 
+When executed, it finds the 'File' database entry with matching id and updates the model 'name' property.
 The body of the 'PUT is a JSON document with the following structure:
  {
     operation: "rename"
@@ -144,8 +188,13 @@ The body of the 'PUT is a JSON document with the following structure:
     ids:["string"] // not used here
 }
 
-`DELETE "/files"`: The body of this DELETE request contains an array of 'id's which reference 'File' model
-entries which should be deleted from Dynamo. The body of the 'DELETE is a JSON document with the following structure which is same as PUT:
+if successful, this returns a successful status code and JSON body including the id and name of the file that was updated: {id: "id", name: "name"}
+
+### DELETE files
+
+Create a new lambda function to handle the following DELETE method request: `DELETE "/files"`:
+The body of this DELETE request contains a JSON document containing an array with the name 'ids' which reference the id's of multiple 'File' model entries which should be deleted from Dynamo.
+The body of the 'DELETE is a JSON document with the following structure which is same as PUT:
 
  {
     operation: "ignore" // not used
@@ -154,6 +203,33 @@ entries which should be deleted from Dynamo. The body of the 'DELETE is a JSON d
     ids:["1", "2"]
 }
 
+### GET "/info/{id}"
+
+Create a new lambda function to handle the following DELETE method request: `GET "/info/{id}"`:
+This function returns the size and count of the provided File model. It will first retrieve the File
+based on the provided 'id'. If the file type is 'file', then it will return a count of '1' and the value
+of the 'size' property of the model in the body of the response as a JSON document. Here is the structure of the JSON
+document:
+
+{
+    count: "1",
+    size: "123456"
+}
+
+If the file type is 'folder', then it will recursively retrieve the 'files' 
+property of a folder and count the total number of ancestor file entries of the original folder as well
+as the sum of all file 'size' properties. This recursive function will only count entries of type 'file' 
+and NOT counting entries of type 'folder'.
+
+In the body of the response, it will return a JSON document with the following format:
+
+{
+    count: "123",
+    size: "123456"
+}
+
+### GET "/preview"
+### GET "/icons/{size}/{name}
 
 ## Create UI
 

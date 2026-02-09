@@ -2,20 +2,8 @@ import type { APIGatewayProxyHandler } from 'aws-lambda';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../data/resource';
-import outputs from "../../../amplify_outputs.json";
 
 // Configure Amplify
-Amplify.configure(outputs);
-
-/**
- * // Configure Amplify
- *  Amplify.configure(outputs);
- *
- * In sandbox mode, we can use `amplify_outputs.json`,
- * which won't be available in the Lambda runtime.
- * To work around this, we can set the necessary environment variables in the backend.ts file
- * and use those to configure Amplify here.
- *
 Amplify.configure(
   {
     API: {
@@ -37,18 +25,207 @@ Amplify.configure(
           },
         }),
         clearCredentialsAndIdentityId: () => {
-          // noop
+          /* noop */
         },
       },
     },
   }
 );
-/**/
 
 const client = generateClient<Schema>();
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   console.log('event', event);
+
+  // Handle PUT /files/{id} endpoint (rename operation)
+  if (event.httpMethod === 'PUT' && (event.resource === '/files/{id}' || event.path?.match(/\/files\/[^/]+$/))) {
+    try {
+      // Get the file id from path parameters
+      const fileId = event.pathParameters?.id;
+
+      if (!fileId) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing id parameter in path' }),
+        };
+      }
+
+      // Parse the request body
+      if (!event.body) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing request body' }),
+        };
+      }
+
+      const body = JSON.parse(event.body);
+      const { operation, name } = body;
+
+      if (operation !== 'rename') {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Only rename operation is supported' }),
+        };
+      }
+
+      if (!name) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing required field: name' }),
+        };
+      }
+
+      // Update the File entry
+      const now = new Date().toISOString();
+      const { data: updatedFile } = await client.models.File.update({
+        id: fileId,
+        name,
+        lastUpdatedDate: now,
+      });
+
+      if (!updatedFile) {
+        return {
+          statusCode: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'File not found' }),
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: updatedFile.id,
+          name: updatedFile.name,
+        }),
+      };
+    } catch (error) {
+      console.error('Error updating file:', error);
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }),
+      };
+    }
+  }
+
+  // Handle POST /files/{id} endpoint
+  if (event.httpMethod === 'POST' && (event.resource === '/files/{id}' || event.path?.match(/\/files\/[^/]+$/))) {
+    try {
+      // Get the parent folder id from path parameters
+      const parentFolderId = event.pathParameters?.id;
+
+      if (!parentFolderId) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing id parameter in path' }),
+        };
+      }
+
+      // Parse the request body
+      if (!event.body) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing request body' }),
+        };
+      }
+
+      const body = JSON.parse(event.body);
+      const { name, type } = body;
+
+      if (!name || !type) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing required fields: name and type' }),
+        };
+      }
+
+      // Create the new File entry
+      const now = new Date().toISOString();
+      const { data: newFile } = await client.models.File.create({
+        name,
+        type,
+        size: 0,
+        fileFolderId: parentFolderId,
+        createdDate: now,
+        lastUpdatedDate: now,
+      });
+
+      return {
+        statusCode: 201,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newFile),
+      };
+    } catch (error) {
+      console.error('Error creating file:', error);
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }),
+      };
+    }
+  }
 
   // Handle /info endpoint
   if (event.path === '/dev/info' || event.resource === '/info') {
@@ -124,7 +301,78 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     }
   }
 
-  // Handle /files endpoint
+  // Handle DELETE /files endpoint
+  if (event.httpMethod === 'DELETE' && (event.resource === '/files' || event.path === '/dev/files')) {
+    try {
+      // Parse the request body
+      if (!event.body) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing request body' }),
+        };
+      }
+
+      const body = JSON.parse(event.body);
+      const { ids } = body;
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing or invalid ids array' }),
+        };
+      }
+
+      // Delete each file by id
+      const deleteResults = await Promise.allSettled(
+        ids.map((id) => client.models.File.delete({ id }))
+      );
+
+      // Count successful deletions
+      const successCount = deleteResults.filter(
+        (result) => result.status === 'fulfilled' && result.value.data !== null
+      ).length;
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `Successfully deleted ${successCount} of ${ids.length} files`,
+          deletedCount: successCount,
+          totalRequested: ids.length,
+        }),
+      };
+    } catch (error) {
+      console.error('Error deleting files:', error);
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }),
+      };
+    }
+  }
+
+  // Handle GET /files endpoint
   try {
     // Query for the root FileFolder
     const { data: fileFolders } = await client.models.FileFolder.list();

@@ -53,6 +53,12 @@ const lambdaIntegration = new LambdaIntegration(
 // Add /files endpoint
 const filesResource = apiGateway.root.addResource('files');
 filesResource.addMethod('GET', lambdaIntegration);
+filesResource.addMethod('DELETE', lambdaIntegration);
+
+// Add /files/{id} endpoint for POST and PUT
+const filesIdResource = filesResource.addResource('{id}');
+filesIdResource.addMethod('POST', lambdaIntegration);
+filesIdResource.addMethod('PUT', lambdaIntegration);
 
 // Add /info endpoint
 const infoResource = apiGateway.root.addResource('info');
