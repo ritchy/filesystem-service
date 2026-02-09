@@ -8,12 +8,6 @@ and "delete" any "Todo" records.
 =========================================================================*/
 const schema = a.schema({
 
-  Todo: a
-    .model({
-      content: a.string(),
-    })
-    .authorization((allow) => [allow.guest()]),
-
   // Enum for file type
   FileType: a.enum(['file', 'folder']),
 
