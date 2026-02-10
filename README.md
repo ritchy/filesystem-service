@@ -205,7 +205,7 @@ The body of the 'DELETE is a JSON document with the following structure which is
 
 ### GET "/info/{id}"
 
-Create a new lambda function to handle the following DELETE method request: `GET "/info/{id}"`:
+Create a new lambda function to handle the following GET method request: `GET "/info/{id}"`:
 This function returns the size and count of the provided File model. It will first retrieve the File
 based on the provided 'id'. If the file type is 'file', then it will return a count of '1' and the value
 of the 'size' property of the model in the body of the response as a JSON document. Here is the structure of the JSON
@@ -229,7 +229,15 @@ In the body of the response, it will return a JSON document with the following f
 }
 
 ### GET "/preview"
-### GET "/icons/{size}/{name}
+
+### GET "/icons/{size}/{name} --> /icons/big/txt.svg
+Create a new, separate lambda function, not using the current files-handler lambda, but a completely new one to return SVG format handle the following GET method request: `GET "/icons/{size}/{name}"`:
+
+This function always returns an SVG file based on the 'size' value. If the size is 'big',
+generate a general text icon, 'txt.svg', to return.
+
+if the size requested is 'small', it returns a generated 'txt.svg' file with a smaller size.
+
 
 ## Create UI
 

@@ -4,38 +4,122 @@ import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../data/resource';
 
 // Configure Amplify
-Amplify.configure(
-  {
-    API: {
-      GraphQL: {
-        endpoint: process.env.AMPLIFY_DATA_GRAPHQL_ENDPOINT || '',
-        region: process.env.AWS_REGION || 'us-east-1',
-        defaultAuthMode: 'identityPool',
-      },
-    },
-  },
-  {
-    Auth: {
-      credentialsProvider: {
-        getCredentialsAndIdentityId: async () => ({
-          credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-            sessionToken: process.env.AWS_SESSION_TOKEN,
-          },
-        }),
-        clearCredentialsAndIdentityId: () => {
-          /* noop */
-        },
-      },
-    },
-  }
-);
+import outputs from "../../../amplify_outputs.json";
+Amplify.configure(outputs);
+
 
 const client = generateClient<Schema>();
 
+/**
+ * Recursively count files and sum sizes for a folder
+ */
+async function getFileInfo(fileId: string): Promise<{ count: number; size: number }> {
+  // Get the file by id
+  const { data: file } = await client.models.File.get({ id: fileId });
+
+  if (!file) {
+    throw new Error('File not found');
+  }
+
+  // If it's a file, return count=1 and its size
+  if (file.type === 'file') {
+    return {
+      count: 1,
+      size: file.size || 0,
+    };
+  }
+
+  // If it's a folder, recursively count all descendant files
+  let totalCount = 0;
+  let totalSize = 0;
+
+  // Get all child files of this folder
+  const { data: childFiles } = await client.models.File.list({
+    filter: {
+      parentFileId: {
+        eq: fileId,
+      },
+    },
+  });
+
+  // Process each child recursively
+  for (const child of childFiles) {
+    const childInfo = await getFileInfo(child.id);
+    totalCount += childInfo.count;
+    totalSize += childInfo.size;
+  }
+
+  return {
+    count: totalCount,
+    size: totalSize,
+  };
+}
+
 export const handler: APIGatewayProxyHandler = async (event) => {
   console.log('event', event);
+
+  // Handle GET /info/{id} endpoint
+  if (event.httpMethod === 'GET' && (event.resource === '/info/{id}' || event.path?.match(/\/info\/[^/]+$/))) {
+    try {
+      // Get the file id from path parameters
+      const fileId = event.pathParameters?.id;
+
+      if (!fileId) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing id parameter in path' }),
+        };
+      }
+
+      // Get file info recursively
+      const info = await getFileInfo(fileId);
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          count: String(info.count),
+          size: String(info.size),
+        }),
+      };
+    } catch (error) {
+      console.error('Error getting file info:', error);
+
+      if (error instanceof Error && error.message === 'File not found') {
+        return {
+          statusCode: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'File not found' }),
+        };
+      }
+
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }),
+      };
+    }
+  }
 
   // Handle PUT /files/{id} endpoint (rename operation)
   if (event.httpMethod === 'PUT' && (event.resource === '/files/{id}' || event.path?.match(/\/files\/[^/]+$/))) {
@@ -285,7 +369,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
           'Access-Control-Allow-Headers': '*',
           'Content-Type': 'text/plain',
         },
-        body: file.text || 'empty',
+        body: file.text || 'found file, but empty',
       };
     } catch (error) {
       console.error('Error fetching file:', error);
@@ -457,7 +541,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     const formattedFiles = files.map((file) => {
       const result: any = {
         id: `/${file.name}`,
-        //id: `${file.id}`,
+        name: `${file.id}`,
         date: new Date(file.lastUpdatedDate),
         type: file.type,
       };

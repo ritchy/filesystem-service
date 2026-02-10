@@ -2,6 +2,7 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { filesHandler } from './functions/files-handler/resource';
+import { iconsHandler } from './functions/icons-handler/resource';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -10,6 +11,7 @@ const backend = defineBackend({
   auth,
   data,
   filesHandler,
+  iconsHandler,
 });
 
 // Add data environment variables to the function
@@ -64,9 +66,22 @@ filesIdResource.addMethod('PUT', lambdaIntegration);
 const infoResource = apiGateway.root.addResource('info');
 infoResource.addMethod('GET', lambdaIntegration);
 
+// Add /info/{id} endpoint
+const infoIdResource = infoResource.addResource('{id}');
+infoIdResource.addMethod('GET', lambdaIntegration);
+
 // Add /direct endpoint
 const directResource = apiGateway.root.addResource('direct');
 directResource.addMethod('GET', lambdaIntegration);
+
+// Add /icons/{size}/{name} endpoint with separate icons handler
+const iconsLambdaIntegration = new LambdaIntegration(
+  backend.iconsHandler.resources.lambda
+);
+const iconsResource = apiGateway.root.addResource('icons');
+const iconsSizeResource = iconsResource.addResource('{size}');
+const iconsNameResource = iconsSizeResource.addResource('{name}');
+iconsNameResource.addMethod('GET', iconsLambdaIntegration);
 
 // Add outputs
 backend.addOutput({
