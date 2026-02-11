@@ -272,6 +272,17 @@ When you right-click any selected item in column 1 or 2, a context menu pops up 
  - create a folder as a child of the item
  - create a file item with a 'name' and textarea associated with the 'text' field of the file item
 
+### UI client tweeks
+
+update the React app in the 'client' folder to handle double-clicking. 
+
+When you double-click a File of type 'folder', it will have that File selected in the 1st 
+column tree of the UI. It will also result in listing the elements of the 'files' property in the 2nd column. 
+
+When you double-click a File of type 'file', the result will be a new browser window with the
+URL pointing to the direct endpoint: "{API_URL}/direct?id={id}" and showing the raw results of
+that endpoint.
+
 ### Manual steps to create react app
 
 npm create vite@latest my-react-app --template react

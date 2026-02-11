@@ -17,6 +17,11 @@ export const getFileIconUrl = (type: 'file' | 'folder', size: 'small' | 'big' = 
   return `${API_BASE_URL}icons/${size}/${iconName}`;
 };
 
+// Helper to get direct URL for a file
+export const getDirectUrl = (fileId: string): string => {
+  return `${API_BASE_URL}direct?id=${fileId}`;
+};
+
 // Fetch root FileFolder and all files
 export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFiles: FileItem[] }> => {
   try {

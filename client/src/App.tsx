@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import {
   fetchRootFolder,
@@ -10,6 +10,7 @@ import {
   createFile,
   searchFiles,
   getFileIconUrl,
+  getDirectUrl,
 } from './api';
 import { FileItem, FileInfo, ContextMenuPosition, ModalData } from './types';
 
@@ -129,6 +130,18 @@ function App() {
         console.error('Failed to load file info:', err);
         setFileInfo(null);
       }
+    }
+  };
+
+  // Handle double-click on middle column items
+  const handleMiddleDoubleClick = async (file: FileItem) => {
+    if (file.type === 'folder') {
+      // Select the folder in the tree and show its children
+      await handleTreeSelect(file);
+    } else if (file.type === 'file') {
+      // Open file content in new window
+      const directUrl = getDirectUrl(file.id);
+      window.open(directUrl, '_blank');
     }
   };
 
@@ -347,6 +360,7 @@ function App() {
                   key={file.id}
                   className={`file-item ${selectedMiddleItem?.id === file.id ? 'selected' : ''}`}
                   onClick={() => handleMiddleSelect(file)}
+                  onDoubleClick={() => handleMiddleDoubleClick(file)}
                   onContextMenu={(e) => handleContextMenu(e, file, 'middle')}
                 >
                   <img src={getFileIconUrl(file.type)} alt={file.type} className="file-icon" />
