@@ -233,11 +233,14 @@ In the body of the response, it will return a JSON document with the following f
 ### GET "/icons/{size}/{name} --> /icons/big/txt.svg
 Create a new, separate lambda function, not using the current files-handler lambda, but a completely new one to return SVG format handle the following GET method request: `GET "/icons/{size}/{name}"`:
 
-This function always returns an SVG file based on the 'size' value. If the size is 'big',
+-This function always returns an SVG file based on the 'size' value. If the size is 'big',
 generate a general text icon, 'txt.svg', to return.
 
 if the size requested is 'small', it returns a generated 'txt.svg' file with a smaller size.
 
+## update "icons/{size}/{name}
+
+update the icons-handler, associated with the `/info/{id}` endpoint, to return a folder icon when the name parameter is 'folder.svg'. If the name path parameter is 'folder.svg', return an new SVG response of a folder that matches the current style of the 'txt.svg', otherwise return the existing txt icon.
 
 ## Create UI
 

@@ -13,6 +13,15 @@ function generateTextIcon(size: 'big' | 'small'): string {
 </svg>`;
 }
 
+// Function to generate a folder SVG icon
+function generateFolderIcon(size: 'big' | 'small'): string {
+  const dimensions = size === 'big' ? { width: 64, height: 64 } : { width: 24, height: 24 };
+  
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${dimensions.width}" height="${dimensions.height}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+</svg>`;
+}
+
 export const handler: APIGatewayProxyHandler = async (event) => {
   console.log('Icons handler event:', event);
 
@@ -46,8 +55,15 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       };
     }
 
-    // Generate the SVG icon (for now, we generate a text icon for all requests)
-    const svgContent = generateTextIcon(size);
+    // Generate the SVG icon based on the name parameter
+    let svgContent: string;
+    
+    if (name === 'folder.svg') {
+      svgContent = generateFolderIcon(size);
+    } else {
+      // Default to text icon for all other requests
+      svgContent = generateTextIcon(size);
+    }
 
     return {
       statusCode: 200,
