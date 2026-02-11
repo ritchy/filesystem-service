@@ -244,7 +244,36 @@ update the icons-handler, associated with the `/info/{id}` endpoint, to return a
 
 ## Create UI
 
-Create UI
+Create a REACT UI based app with a file explorer interface that leverages the endpoints of this project.
+
+There are 3 columns in the UI:
+
+The left most column is a tree starting at the root FileFolder model and lists the 'file' property elements
+as it's children. Each 'file' element, in turn, has children, so this is probably a recursive traversal to
+to render this left most column panel. It starts out 1 level deep.
+
+The middle column displays the children of whatever is selected in the left most column. It is not a tree, but
+simply a list of 'file' elements of whatever is selected on the left most column.
+
+The third and last column displays the results from calling the endpoint: GET "/info/{id}", of any 
+selected item in the middle column.
+
+Above the 3 columns there's a panel that spans all 3. On the left, there is a search bar to filter
+a file or folder based on the name. There is a results panel that is shown as soon as 2 or more 
+characters are typed in the search bar. This search results panel overlay's the 3 columns and this 
+panel will disappear when the search panel is cleared. There should a button to the right of the 
+search panel with an 'x' to clear the search text and restore the 3 columns.
+
+In the same panel as the search field, on the right side, there is also a toggle button to hide or display the last, right most column showing the 'info' of items selected in the middle column.
+
+When you right-click any selected item in column 1 or 2, a context menu pops up allowing you to 
+ - rename the item
+ - delete the item 
+ - create a folder as a child of the item
+ - create a file item with a 'name' and textarea associated with the 'text' field of the file item
+
+### Manual steps to create react app
+
 npm create vite@latest my-react-app --template react
 npm install
 npm run dev
