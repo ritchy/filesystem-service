@@ -138,11 +138,80 @@ function App() {
     if (file.type === 'folder') {
       // Select the folder in the tree and show its children
       await handleTreeSelect(file);
+      // Expand the tree to show this folder
+      await expandTreeToFile(file.id);
     } else if (file.type === 'file') {
       // Open file content in new window
       const directUrl = getDirectUrl(file.id);
       window.open(directUrl, '_blank');
     }
+  };
+
+  // Handle double-click on tree items
+  const handleTreeDoubleClick = async (file: FileItem, path: number[]) => {
+    if (file.type === 'file') {
+      // Open file content in new window
+      const directUrl = getDirectUrl(file.id);
+      window.open(directUrl, '_blank');
+    } else if (file.type === 'folder') {
+      // Toggle expansion for folders
+      await toggleTreeNode(path);
+    }
+  };
+
+  // Find and expand tree path to a specific file
+  const expandTreeToFile = async (fileId: string) => {
+    // First, we need to find the path to this file
+    const path = await findFilePathInTree(fileId);
+    if (path) {
+      // Expand all parent nodes
+      await expandPath(path);
+    }
+  };
+
+  // Find the path to a file in the tree
+  const findFilePathInTree = async (fileId: string, nodes: TreeNode[] = treeData, currentPath: number[] = []): Promise<number[] | null> => {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (node.file.id === fileId) {
+        return [...currentPath, i];
+      }
+
+      // Load children if not loaded and it's a folder
+      if (node.file.type === 'folder' && !node.isLoaded) {
+        const children = await loadChildren(node);
+        node.children = children;
+        node.isLoaded = true;
+      }
+
+      // Search in children
+      if (node.children.length > 0) {
+        const childPath = await findFilePathInTree(fileId, node.children, [...currentPath, i]);
+        if (childPath) {
+          return childPath;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Expand all nodes along a path
+  const expandPath = async (path: number[]) => {
+    const newTreeData = [...treeData];
+    let current: TreeNode[] = newTreeData;
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const node = current[path[i]];
+      if (!node.isLoaded) {
+        const children = await loadChildren(node);
+        node.children = children;
+        node.isLoaded = true;
+      }
+      node.isExpanded = true;
+      current = node.children;
+    }
+
+    setTreeData(newTreeData);
   };
 
   // Handle search
@@ -266,6 +335,7 @@ function App() {
           className={`file-item ${isSelected ? 'selected' : ''}`}
           style={{ paddingLeft: `${level * 24 + 12}px` }}
           onClick={() => handleTreeSelect(node.file)}
+          onDoubleClick={() => handleTreeDoubleClick(node.file, path)}
           onContextMenu={(e) => handleContextMenu(e, node.file, 'tree')}
         >
           {hasChildren && (

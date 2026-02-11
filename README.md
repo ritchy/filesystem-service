@@ -283,6 +283,19 @@ When you double-click a File of type 'file', the result will be a new browser wi
 URL pointing to the direct endpoint: "{API_URL}/direct?id={id}" and showing the raw results of
 that endpoint.
 
+### UI Client tweeks
+
+update the React app in the 'client' folder to handle the following 2 scenarios:
+
+double-clicking a File of type 'file' in the 1st column tree will behave same as double clicking a file
+in the 2nd column. double-clicking a File of type 'file' should result a new browser window with the
+URL pointing to the direct endpoint: "{API_URL}/direct?id={id}" and showing the raw results of
+that endpoint.
+
+the tree in the 1st column should automatically expand the tree to whatever File is selected.
+So, double-clicking a folder in the 2nd column should trigger the tree to open up and show
+the selected folder with it's files elements shown in the 2nd column.
+
 ### Manual steps to create react app
 
 npm create vite@latest my-react-app --template react
