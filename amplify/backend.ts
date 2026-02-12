@@ -1,6 +1,7 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
+import { storage } from './storage/resource';
 import { filesHandler } from './functions/files-handler/resource';
 import { iconsHandler } from './functions/icons-handler/resource';
 
@@ -10,6 +11,7 @@ import { iconsHandler } from './functions/icons-handler/resource';
 const backend = defineBackend({
   auth,
   data,
+  storage,
   filesHandler,
   iconsHandler,
 });

@@ -22,7 +22,8 @@ export interface ContextMenuPosition {
 }
 
 export interface ModalData {
-  type: 'rename' | 'createFolder' | 'createFile';
+  type: 'rename' | 'createFolder' | 'createFile' | 'upload';
   file?: FileItem;
   parentId?: string;
+  uploadFile?: File;
 }

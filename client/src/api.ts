@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
+import { uploadData } from 'aws-amplify/storage';
 import type { Schema } from '../../amplify/data/resource';
 import amplifyOutputs from './amplify_outputs.json';
 import { FileItem, FileInfo } from './types';
@@ -26,7 +27,7 @@ export const getDirectUrl = (fileId: string): string => {
 export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFiles: FileItem[] }> => {
   try {
     const { data: fileFolders } = await client.models.FileFolder.list();
-    
+
     if (!fileFolders || fileFolders.length === 0) {
       throw new Error('No root folder found');
     }
@@ -161,6 +162,48 @@ export const searchFiles = async (query: string): Promise<FileItem[]> => {
     return files as unknown as FileItem[];
   } catch (error) {
     console.error('Error searching files:', error);
+    throw error;
+  }
+};
+
+// Upload a file to S3 and create File entry
+export const uploadFile = async (
+  
+  file: File,
+  fileName: string,
+  parentFileId: string | null,
+  rootFolderId: string
+): Promise<FileItem> => {
+  console.log('uploading file:', fileName, 'to parentFileId:', parentFileId, 'with rootFolderId:', rootFolderId);
+  try {
+    // Upload file to S3 in the 'files' folder
+    const s3Path = `files/${Date.now()}_${fileName}`;
+
+    const result = await uploadData({
+      path: s3Path,
+      data: file,
+      options: {
+        contentType: file.type
+      }
+    }).result;
+
+    console.log('File uploaded to S3 at path:', s3Path, 'with result:', result);
+    // Create File entry in database
+    const now = new Date().toISOString();
+    const { data: newFile } = await client.models.File.create({
+      name: fileName,
+      type: 'file',
+      size: file.size,
+      fileReference: s3Path,
+      parentFileId: parentFileId || undefined,
+      fileFolderId: rootFolderId,
+      createdDate: now,
+      lastUpdatedDate: now
+    });
+
+    return newFile as unknown as FileItem;
+  } catch (error) {
+    console.error('Error uploading file:', error);
     throw error;
   }
 };

@@ -11,6 +11,7 @@ import {
   searchFiles,
   getFileIconUrl,
   getDirectUrl,
+  uploadFile,
 } from './api';
 import { FileItem, FileInfo, ContextMenuPosition, ModalData } from './types';
 
@@ -35,6 +36,8 @@ function App() {
   const [modal, setModal] = useState<ModalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<FileItem | null>(null);
 
   const modalNameRef = useRef<HTMLInputElement>(null);
   const modalTextRef = useRef<HTMLTextAreaElement>(null);
@@ -299,12 +302,43 @@ function App() {
     setContextMenu(null);
   };
 
+  // Handle file drop
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+
+    const droppedFile = e.dataTransfer.files[0];
+
+    // Open upload modal with pre-populated filename
+    setModal({
+      type: 'upload',
+      uploadFile: droppedFile,
+      parentId: selectedTreeItem?.type === 'folder'
+        ? selectedTreeItem.id
+        : selectedTreeItem?.parentFileId || rootFolderId,
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   // Modal submit
   const handleModalSubmit = async (e: React.FormEvent) => {
+      console.log('handleModalSubmit');
     e.preventDefault();
     if (!modal) return;
 
     try {
+      console.log('initiating upload');
       if (modal.type === 'rename' && modal.file) {
         const newName = modalNameRef.current?.value || '';
         await renameFile(modal.file.id, newName);
@@ -315,12 +349,47 @@ function App() {
         const name = modalNameRef.current?.value || '';
         const text = modalTextRef.current?.value || '';
         await createFile(modal.parentId || rootFolderId, name, text, rootFolderId);
+      } else if (modal.type === 'upload' && modal.uploadFile) {
+        const fileName = modalNameRef.current?.value || '';
+        setUploadingFile(null);
+
+        // Determine parent file ID based on selected item
+        const parentFileId = selectedTreeItem?.type === 'folder'
+          ? selectedTreeItem.id
+          : selectedTreeItem?.parentFileId || null;
+
+        // Upload file
+        const newFile = await uploadFile(modal.uploadFile, fileName, parentFileId, rootFolderId);
+        setUploadingFile(newFile);
+
+        // Reload data to refresh tree
+        await loadRootData();
+
+        // Refresh middle column if we have a selected tree item
+        if (selectedTreeItem) {
+          const children = await fetchChildren(
+            selectedTreeItem.type === 'folder'
+              ? selectedTreeItem.id
+              : selectedTreeItem.parentFileId || rootFolderId
+          );
+          setMiddleColumnItems(children);
+
+          // Auto-select the new file in middle column
+          setSelectedMiddleItem(newFile);
+
+          // Load file info for the new file
+          if (showInfoColumn) {
+            const info = await fetchFileInfo(newFile.id);
+            setFileInfo(info);
+          }
+        }
       }
 
       await loadRootData();
       setModal(null);
     } catch (err) {
       alert('Operation failed');
+      console.error(err);
     }
   };
 
@@ -421,10 +490,22 @@ function App() {
               {treeData.map((node, idx) => renderTreeNode(node, [idx]))}
             </div>
 
-            <div className="column">
+            <div
+              className={`column drop-zone ${isDragging ? 'dragging' : ''}`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
               <div className="column-header">
                 {selectedTreeItem ? selectedTreeItem.name : 'Select a folder'}
               </div>
+              {isDragging && (
+                <div className="drop-overlay">
+                  <div className="drop-message">
+                    Drop file here to upload
+                  </div>
+                </div>
+              )}
               {middleColumnItems.map((file) => (
                 <div
                   key={file.id}
@@ -496,6 +577,7 @@ function App() {
               {modal.type === 'rename' && `Rename "${modal.file?.name}"`}
               {modal.type === 'createFolder' && 'Create New Folder'}
               {modal.type === 'createFile' && 'Create New File'}
+              {modal.type === 'upload' && 'Upload File'}
             </div>
             <form className="modal-form" onSubmit={handleModalSubmit}>
               <div className="form-group">
@@ -504,7 +586,10 @@ function App() {
                   ref={modalNameRef}
                   type="text"
                   className="form-input"
-                  defaultValue={modal.type === 'rename' ? modal.file?.name : ''}
+                  defaultValue={
+                    modal.type === 'rename' ? modal.file?.name :
+                      modal.type === 'upload' ? modal.uploadFile?.name : ''
+                  }
                   required
                   autoFocus
                 />
@@ -519,12 +604,23 @@ function App() {
                   />
                 </div>
               )}
+              {modal.type === 'upload' && modal.uploadFile && (
+                <div className="form-group">
+                  <label className="form-label">File Info</label>
+                  <div className="info-value">
+                    Size: {modal.uploadFile.size.toLocaleString()} bytes
+                  </div>
+                  <div className="info-value">
+                    Type: {modal.uploadFile.type || 'unknown'}
+                  </div>
+                </div>
+              )}
               <div className="modal-buttons">
                 <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {modal.type === 'rename' ? 'Rename' : 'Create'}
+                  {modal.type === 'rename' ? 'Rename' : modal.type === 'upload' ? 'Upload' : 'Create'}
                 </button>
               </div>
             </form>

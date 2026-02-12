@@ -160,7 +160,7 @@ Add a new function to the file-handler lambda to handle the following POST reque
 
 This creates a new File entry of type folder from the 'id' provided in the uri and the 2 properties in the provided body of the POST containing a JSON document with the following structure:
 {
-    name: "folder name",
+  name: "folder name",
 	type: "folder"
 }
 
@@ -174,7 +174,17 @@ await client.models.File.create({
   lastUpdatedDate: new Date().toISOString(),
 });
 
-`POST /upload`: 'id' is provided as a query parameter in the POST uri. The body of the request is a multipart form.
+### -- NOT YET -- Handle File Uploads: `POST /upload?id=xx`
+
+Create a new endpoint and handle to process the following POST method: `POST /upload?id=123`.
+
+As part of this we need a new amplify storage definition to create an S3 bucket to store 
+files when this endpoint is called.
+
+'id' is provided as a query parameter in the POST uri and associated with the 'File'
+associated with the data uploaded. The property, 'fileReference' will contain the the S3
+reference associated with file upload
+
 
 ### Rename a file or folder PUT /files/{id}
 
@@ -295,6 +305,29 @@ that endpoint.
 the tree in the 1st column should automatically expand the tree to whatever File is selected.
 So, double-clicking a folder in the 2nd column should trigger the tree to open up and show
 the selected folder with it's files elements shown in the 2nd column.
+
+### Add UI Upload capability
+
+Add a file upload capability to the client UI REACT app. Make the 2nd column in the UI a drop zone that accepts
+a drop from a file in the local filesystem and pops up an upload dialog with a name field and upload button. 
+The name of the dropped file is pre-populated in a name text field, but can be changed before upload 
+button is selected.
+
+For this, we need to add a new amplify storage definition to the filesystem-service amplify project. This new storage definition specifies an S3 bucket to store uploaded files in a '/files' folder. 
+
+When the upload is complete, we then also create a new File entry:
+
+The 'name' field of the new File entry matches the name from the upload dialog. 
+the 'size' field is based on the size in bytes of the file uploaded.
+The 'fileReference' value is populated with the S3 'path' provided in the upload call to Amplify.Storage.uploadData
+The 'parentFile' property is based the currently selected File entry:
+  - If the currently selected File is of type 'folder', it will serve as the 'parentFile'
+  - If the currently selected File is of type 'file', then the 'parentFile' of the new File is
+    the same as the 'parentFile' of the selected file.
+
+Once the upload and File creation is complete, the UI is refreshed to show the new file in the 1st column 
+tree and the new file is auto-selected in the middle, 2nd column. The selection should also trigger
+a refresh to the 3rd 'info' column.
 
 ### Manual steps to create react app
 

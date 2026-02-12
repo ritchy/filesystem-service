@@ -326,3 +326,38 @@
   border-radius: 4px;
   margin: 16px;
 }
+
+/* Drag and Drop Styles */
+.drop-zone {
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.drop-zone.dragging {
+  background-color: #e3f2fd;
+  border: 2px dashed #2196f3;
+}
+
+.drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(33, 150, 243, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.drop-message {
+  padding: 24px;
+  background-color: #2196f3;
+  color: white;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
