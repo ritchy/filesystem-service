@@ -45,9 +45,10 @@ const schema = a.schema({
       parentFile: a.belongsTo('File', 'parentFileId'),
       childFiles: a.hasMany('File', 'parentFileId'),
     })
-    .authorization((allow) => [allow.guest()]),
+    .authorization((allow) => [allow.guest(),
+    ]),
 
-}); //.authorization(allow => [allow.resource(filesHandler)]);
+}).authorization(allow => [allow.resource(filesHandler)]);
 
 export type Schema = ClientSchema<typeof schema>;
 

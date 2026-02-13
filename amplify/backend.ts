@@ -16,12 +16,14 @@ const backend = defineBackend({
   iconsHandler,
 });
 
+// Import API Gateway v1 (REST API) construct
+import { RestApi, LambdaIntegration, Cors } from 'aws-cdk-lib/aws-apigateway';
+import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
+
 // Add data environment variables to the function
 backend.filesHandler.addEnvironment('AMPLIFY_DATA_GRAPHQL_ENDPOINT', backend.data.resources.cfnResources.cfnGraphqlApi.attrGraphQlUrl);
 
 // Grant Lambda access to AppSync
-import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
-
 backend.filesHandler.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     effect: Effect.ALLOW,
@@ -30,13 +32,10 @@ backend.filesHandler.resources.lambda.addToRolePolicy(
   })
 );
 
-// Create API Gateway REST API
-const filesApi = backend.createStack('files-api');
+// Create API Gateway in data stack since functions are assigned there
+const dataStack = backend.data.resources.cfnResources.cfnGraphqlApi.stack;
 
-// Import API Gateway v1 (REST API) construct
-import { RestApi, LambdaIntegration, Cors } from 'aws-cdk-lib/aws-apigateway';
-
-const apiGateway = new RestApi(filesApi, 'FilesRestApi', {
+const apiGateway = new RestApi(dataStack, 'FilesRestApi', {
   restApiName: 'Files API',
   description: 'API for filesystem operations',
   deployOptions: {
