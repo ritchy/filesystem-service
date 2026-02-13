@@ -168,7 +168,6 @@ export const searchFiles = async (query: string): Promise<FileItem[]> => {
 
 // Upload a file to S3 and create File entry
 export const uploadFile = async (
-  
   file: File,
   fileName: string,
   parentFileId: string | null,
