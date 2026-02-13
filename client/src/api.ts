@@ -171,7 +171,8 @@ export const uploadFile = async (
   file: File,
   fileName: string,
   parentFileId: string | null,
-  rootFolderId: string
+  rootFolderId: string,
+  onProgress?: (progress: number) => void
 ): Promise<FileItem> => {
   console.log('uploading file:', fileName, 'to parentFileId:', parentFileId, 'with rootFolderId:', rootFolderId);
   try {
@@ -182,7 +183,13 @@ export const uploadFile = async (
       path: s3Path,
       data: file,
       options: {
-        contentType: file.type
+        contentType: file.type,
+        onProgress: ({ transferredBytes, totalBytes }) => {
+          if (totalBytes && onProgress) {
+            const percentComplete = Math.round((transferredBytes / totalBytes) * 100);
+            onProgress(percentComplete);
+          }
+        }
       }
     }).result;
 

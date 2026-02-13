@@ -38,6 +38,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<FileItem | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const modalNameRef = useRef<HTMLInputElement>(null);
   const modalTextRef = useRef<HTMLTextAreaElement>(null);
@@ -333,7 +335,7 @@ function App() {
 
   // Modal submit
   const handleModalSubmit = async (e: React.FormEvent) => {
-      console.log('handleModalSubmit');
+    console.log('handleModalSubmit');
     e.preventDefault();
     if (!modal) return;
 
@@ -352,15 +354,26 @@ function App() {
       } else if (modal.type === 'upload' && modal.uploadFile) {
         const fileName = modalNameRef.current?.value || '';
         setUploadingFile(null);
+        setIsUploading(true);
+        setUploadProgress(0);
 
         // Determine parent file ID based on selected item
         const parentFileId = selectedTreeItem?.type === 'folder'
           ? selectedTreeItem.id
           : selectedTreeItem?.parentFileId || null;
 
-        // Upload file
-        const newFile = await uploadFile(modal.uploadFile, fileName, parentFileId, rootFolderId);
+        // Upload file with progress tracking
+        const newFile = await uploadFile(
+          modal.uploadFile,
+          fileName,
+          parentFileId,
+          rootFolderId,
+          (progress) => {
+            setUploadProgress(progress);
+          }
+        );
         setUploadingFile(newFile);
+        setIsUploading(false);
 
         // Reload data to refresh tree
         await loadRootData();
@@ -605,22 +618,45 @@ function App() {
                 </div>
               )}
               {modal.type === 'upload' && modal.uploadFile && (
-                <div className="form-group">
-                  <label className="form-label">File Info</label>
-                  <div className="info-value">
-                    Size: {modal.uploadFile.size.toLocaleString()} bytes
+                <>
+                  <div className="form-group">
+                    <label className="form-label">File Info</label>
+                    <div className="info-value">
+                      Size: {modal.uploadFile.size.toLocaleString()} bytes
+                    </div>
+                    <div className="info-value">
+                      Type: {modal.uploadFile.type || 'unknown'}
+                    </div>
                   </div>
-                  <div className="info-value">
-                    Type: {modal.uploadFile.type || 'unknown'}
-                  </div>
-                </div>
+                  {isUploading && (
+                    <div className="form-group">
+                      <label className="form-label">Upload Progress</label>
+                      <div className="progress-bar-container">
+                        <div
+                          className="progress-bar-fill"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <div className="progress-text">{uploadProgress}%</div>
+                    </div>
+                  )}
+                </>
               )}
               <div className="modal-buttons">
-                <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setModal(null)}
+                  disabled={isUploading}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {modal.type === 'rename' ? 'Rename' : modal.type === 'upload' ? 'Upload' : 'Create'}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isUploading}
+                >
+                  {modal.type === 'rename' ? 'Rename' : modal.type === 'upload' ? (isUploading ? 'Uploading...' : 'Upload') : 'Create'}
                 </button>
               </div>
             </form>
