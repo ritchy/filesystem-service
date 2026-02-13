@@ -47,8 +47,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.guest()]),
 
-})
-  .authorization(allow => [allow.resource(filesHandler)]);
+}); //.authorization(allow => [allow.resource(filesHandler)]);
 
 export type Schema = ClientSchema<typeof schema>;
 
