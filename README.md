@@ -153,6 +153,18 @@ Add a new function to the file-handler lambda to handle the following GET reques
 This finds the associated File entry with the matching id and returns the 'text' value or an empty string
 if it's missing.
 
+## update `GET /direct?id={id} to handle non-text files located in S3
+
+I'd like to update the lambda associated with the endpoint: `GET /direct?id={id}. It currently 
+returns the value of the 'text' property after finding the file associated with the provided 'id'.
+
+If there is no value in the 'fileReference' property, I'd like to return same text as it currently does.
+
+If there is a value in the 'fileReference' property, I'd like to send a redirect with a direct link
+to a pre-signed URL of the file in S3 using the 'fileReference' as the path to the defined S3 
+bucket in this project.
+
+This should result in a direct download of the file data.
 
 ### now add the handler for creating folders via a POST method
 
@@ -328,6 +340,40 @@ The 'parentFile' property is based the currently selected File entry:
 Once the upload and File creation is complete, the UI is refreshed to show the new file in the 1st column 
 tree and the new file is auto-selected in the middle, 2nd column. The selection should also trigger
 a refresh to the 3rd 'info' column.
+
+### Add UI upload progress
+
+When a file is dropped to the middle column of this app, an upload dialog appears. I'd like to enhance
+this dialog to show upload progress. Amazon S3 documentation shows you can monitor progress
+in the following manner:
+
+import { uploadData } from 'aws-amplify/storage';
+
+const monitorUpload = async () => {
+  try {
+    const result = await uploadData({
+      path: "album/2024/1.jpg",
+      // Alternatively, path: ({identityId}) => `album/${identityId}/1.jpg`
+      data: file,
+      options: {
+        onProgress: ({ transferredBytes, totalBytes }) => {
+          if (totalBytes) {
+            console.log(
+              `Upload progress ${Math.round(
+                (transferredBytes / totalBytes) * 100
+              )} %`
+            );
+          }
+        },
+      },
+    }).result;
+    console.log("Path from Response: ", result.path);
+  } catch (error) {
+    console.log("Error : ", error);
+  }
+}
+
+I'd like to add a progress bar in the upload dialog showing upload progress.
 
 ### Manual steps to create react app
 

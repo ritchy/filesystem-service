@@ -20,6 +20,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.989.0",
     "aws-amplify": "^6.16.0"
   }
 }

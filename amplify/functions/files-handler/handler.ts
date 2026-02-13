@@ -4,6 +4,8 @@ import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../data/resource';
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 import { env } from '$amplify/env/files-handler';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 
 // Retrieve the configuration
@@ -398,7 +400,49 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         };
       }
 
-      // Return the text value or empty string
+      // Check if file has an S3 reference
+      if (file.fileReference) {
+        // Get S3 bucket name from environment
+        const bucketName = process.env.STORAGE_BUCKET_NAME;
+
+        if (!bucketName) {
+          console.error('STORAGE_BUCKET_NAME environment variable not set');
+          return {
+            statusCode: 500,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Headers': '*',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ error: 'Storage configuration error' }),
+          };
+        }
+
+        // Create S3 client
+        const s3Client = new S3Client({ region: env.AWS_REGION || 'us-east-1' });
+
+        // Create GetObject command
+        const command = new GetObjectCommand({
+          Bucket: bucketName,
+          Key: file.fileReference,
+        });
+
+        // Generate pre-signed URL (valid for 1 hour)
+        const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+
+        // Redirect to the pre-signed URL
+        return {
+          statusCode: 302,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Location': presignedUrl,
+          } as { [key: string]: string },
+          body: '',
+        };
+      }
+
+      // No fileReference, return the text value or empty string
       return {
         statusCode: 200,
         headers: {

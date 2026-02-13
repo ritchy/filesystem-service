@@ -22,6 +22,7 @@ import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
 
 // Add data environment variables to the function
 backend.filesHandler.addEnvironment('AMPLIFY_DATA_GRAPHQL_ENDPOINT', backend.data.resources.cfnResources.cfnGraphqlApi.attrGraphQlUrl);
+backend.filesHandler.addEnvironment('STORAGE_BUCKET_NAME', backend.storage.resources.bucket.bucketName);
 
 // Grant Lambda access to AppSync
 backend.filesHandler.resources.lambda.addToRolePolicy(
@@ -29,6 +30,15 @@ backend.filesHandler.resources.lambda.addToRolePolicy(
     effect: Effect.ALLOW,
     actions: ['appsync:GraphQL'],
     resources: [`${backend.data.resources.cfnResources.cfnGraphqlApi.attrArn}/*`],
+  })
+);
+
+// Grant Lambda access to S3
+backend.filesHandler.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    effect: Effect.ALLOW,
+    actions: ['s3:GetObject'],
+    resources: [`${backend.storage.resources.bucket.bucketArn}/*`],
   })
 );
 
