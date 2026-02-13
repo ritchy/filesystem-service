@@ -6,11 +6,17 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import { env } from '$amplify/env/files-handler';
 
 
+// Retrieve the configuration
+const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
+
+// Configure the Amplify client library
+Amplify.configure(resourceConfig, libraryOptions);
 
 // Configure Amplify
 //import outputs from "../../../amplify_outputs.json";
 //Amplify.configure(outputs);
 
+/****
 Amplify.configure(
   {
     API: {
@@ -32,12 +38,12 @@ Amplify.configure(
           },
         }),
         clearCredentialsAndIdentityId: () => {
-          /* noop */
         },
       },
     },
   }
 );
+  ***/
 
 const client = generateClient<Schema>();
 

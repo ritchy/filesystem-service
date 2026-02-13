@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+import { filesHandler } from '../functions/files-handler/resource';
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -33,11 +34,11 @@ const schema = a.schema({
       fileReference: a.string(), // Store S3 reference for binary files
       createdDate: a.datetime().required(),
       lastUpdatedDate: a.datetime().required(),
-      
+
       // Relationship to parent FileFolder (root level)
       fileFolderId: a.id(),
       fileFolder: a.belongsTo('FileFolder', 'fileFolderId'),
-      
+
       // Self-referential relationship for nested structure
       // If this file is of type 'folder', it can have children
       parentFileId: a.id(),
@@ -46,7 +47,8 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.guest()]),
 
-});
+})
+  .authorization(allow => [allow.resource(filesHandler)]);
 
 export type Schema = ClientSchema<typeof schema>;
 
