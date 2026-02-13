@@ -6,6 +6,7 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import { env } from '$amplify/env/files-handler';
 
 
+
 // Configure Amplify
 //import outputs from "../../../amplify_outputs.json";
 //Amplify.configure(outputs);
