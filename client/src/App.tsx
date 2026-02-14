@@ -138,6 +138,50 @@ function App() {
     }
   };
 
+  // Handle double-click on parent directory (..)
+  const handleParentNavigate = async () => {
+    if (!selectedTreeItem || !selectedTreeItem.parentFileId) return;
+
+    // Find the parent file
+    const findParentFile = async (parentId: string): Promise<FileItem | null> => {
+      // Search in tree data
+      const searchInTree = (nodes: TreeNode[]): FileItem | null => {
+        for (const node of nodes) {
+          if (node.file.id === parentId) {
+            return node.file;
+          }
+          if (node.children.length > 0) {
+            const found = searchInTree(node.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      let parentFile = searchInTree(treeData);
+
+      // If not found in tree, fetch it
+      if (!parentFile) {
+        try {
+          const children = await fetchChildren(parentId);
+          // We need to get the parent file itself, so let's search root level
+          const { rootFiles } = await fetchRootFolder();
+          parentFile = rootFiles.find(f => f.id === parentId) || null;
+        } catch (err) {
+          console.error('Failed to find parent:', err);
+        }
+      }
+
+      return parentFile;
+    };
+
+    const parentFile = await findParentFile(selectedTreeItem.parentFileId);
+    if (parentFile) {
+      await handleTreeSelect(parentFile);
+      await expandTreeToFile(parentFile.id);
+    }
+  };
+
   // Handle double-click on middle column items
   const handleMiddleDoubleClick = async (file: FileItem) => {
     if (file.type === 'folder') {
@@ -517,6 +561,16 @@ function App() {
                   <div className="drop-message">
                     Drop file here to upload
                   </div>
+                </div>
+              )}
+              {selectedTreeItem && selectedTreeItem.type === 'folder' && selectedTreeItem.parentFileId && (
+                <div
+                  key="parent-nav"
+                  className="file-item parent-nav"
+                  onDoubleClick={handleParentNavigate}
+                >
+                  <img src={getFileIconUrl('folder')} alt="folder" className="file-icon" />
+                  <span className="file-name">..</span>
                 </div>
               )}
               {middleColumnItems.map((file) => (

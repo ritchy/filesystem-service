@@ -166,6 +166,8 @@ bucket in this project.
 
 This should result in a direct download of the file data.
 
+//npm install @aws-sdk/s3-request-presigner
+
 ### now add the handler for creating folders via a POST method
 
 Add a new function to the file-handler lambda to handle the following POST request: `POST /files/{id}`: 
