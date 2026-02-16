@@ -12,7 +12,7 @@ const schema = a.schema({
   // Enum for file type
   FileType: a.enum(['file', 'folder']),
 
-  // Root filesystem folder container
+  // Root filesystem folder container - each user gets their own
   FileFolder: a
     .model({
       id: a.id().required(),
@@ -21,9 +21,12 @@ const schema = a.schema({
       lastUpdatedDate: a.datetime().required(),
       files: a.hasMany('File', 'fileFolderId'),
     })
-    .authorization((allow) => [allow.guest()]),
+    .authorization((allow) => [
+      allow.owner()
+      //allow.authenticated().to(['read']), // Allow authenticated users to read (optional)
+    ]),
 
-  // File model - can represent both files and folders
+  // File model - can represent both files and folders, isolated per user
   File: a
     .model({
       id: a.id().required(),
@@ -45,7 +48,9 @@ const schema = a.schema({
       parentFile: a.belongsTo('File', 'parentFileId'),
       childFiles: a.hasMany('File', 'parentFileId'),
     })
-    .authorization((allow) => [allow.guest(),
+    .authorization((allow) => [
+      allow.owner()
+      //allow.authenticated().to(['read']), // Allow authenticated users to read (optional)
     ]),
 
 }).authorization(allow => [allow.resource(filesHandler)]);
@@ -55,7 +60,7 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'identityPool',
+    defaultAuthorizationMode: 'userPool',
   },
 });
 
