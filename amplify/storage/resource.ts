@@ -7,10 +7,6 @@ export const storage = defineStorage({
     'files/{entity_id}/*': [
       allow.authenticated.to(['read', 'write', 'delete']),
       allow.guest.to(['read', 'write', 'delete'])
-    ],
-    // Legacy path for backward compatibility
-    'files/*': [
-      allow.guest.to(['read', 'write', 'delete'])
     ]
   })
 });
