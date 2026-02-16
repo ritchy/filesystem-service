@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Authenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
 import './App.css';
 import {
   fetchRootFolder,
@@ -12,6 +14,7 @@ import {
   getFileIconUrl,
   getDirectUrl,
   uploadFile,
+  getCurrentUserId,
 } from './api';
 import { FileItem, FileInfo, ContextMenuPosition, ModalData } from './types';
 
@@ -22,7 +25,7 @@ interface TreeNode {
   isLoaded: boolean;
 }
 
-function App() {
+function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) {
   const [rootFolderId, setRootFolderId] = useState<string>('');
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [selectedTreeItem, setSelectedTreeItem] = useState<FileItem | null>(null);
@@ -40,9 +43,20 @@ function App() {
   const [uploadingFile, setUploadingFile] = useState<FileItem | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const modalNameRef = useRef<HTMLInputElement>(null);
   const modalTextRef = useRef<HTMLTextAreaElement>(null);
+
+  // Get user ID on mount
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await getCurrentUserId();
+      setUserId(id);
+      console.log('User ID for storage:', id);
+    };
+    fetchUserId();
+  }, []);
 
   // Load root folder and initial data
   useEffect(() => {
@@ -515,9 +529,21 @@ function App() {
             </button>
           )}
         </div>
-        <button className="toggle-button" onClick={() => setShowInfoColumn(!showInfoColumn)}>
-          {showInfoColumn ? 'Hide Info' : 'Show Info'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {user && (
+            <span style={{ fontSize: '14px', color: '#666' }}>
+              {user.signInDetails?.loginId || user.username}
+            </span>
+          )}
+          <button className="toggle-button" onClick={() => setShowInfoColumn(!showInfoColumn)}>
+            {showInfoColumn ? 'Hide Info' : 'Show Info'}
+          </button>
+          {signOut && (
+            <button className="toggle-button" onClick={signOut}>
+              Sign Out
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="main-content">
@@ -718,6 +744,17 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+
+// Main App component wrapped with Authenticator
+function App() {
+  return (
+    <Authenticator>
+      {({ signOut, user }) => (
+        <FileSystemApp signOut={signOut} user={user} />
+      )}
+    </Authenticator>
   );
 }
 
