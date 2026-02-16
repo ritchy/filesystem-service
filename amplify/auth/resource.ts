@@ -8,4 +8,11 @@ export const auth = defineAuth({
   loginWith: {
     email: true,
   },
+  // Configure token refresh for persistent login
+  userAttributes: {
+    email: {
+      required: true,
+      mutable: true,
+    },
+  },
 });
