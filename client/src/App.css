@@ -487,3 +487,29 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Amplify Authenticator Customization */
+[data-amplify-authenticator] {
+  --amplify-components-button-primary-background-color: #000000;
+  --amplify-components-button-primary-hover-background-color: #333333;
+  --amplify-components-button-primary-active-background-color: #1a1a1a;
+  --amplify-components-button-primary-focus-background-color: #000000;
+}
+
+/* Additional Amplify button styling */
+[data-amplify-authenticator] button[type="submit"] {
+  background-color: #000000 !important;
+}
+
+[data-amplify-authenticator] button[type="submit"]:hover {
+  background-color: #333333 !important;
+}
+
+/* Forgot password link styling */
+[data-amplify-authenticator] [data-amplify-router-content] button[type="button"] {
+  color: #000000 !important;
+}
+
+[data-amplify-authenticator] .amplify-button--link {
+  color: #000000 !important;
+}

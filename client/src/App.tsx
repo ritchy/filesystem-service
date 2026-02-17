@@ -784,8 +784,33 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
 
 // Main App component wrapped with Authenticator
 function App() {
+  const components = {
+    Header() {
+      return (
+        <div style={{
+          textAlign: 'center',
+          marginTop: '60px',
+          marginBottom: '40px'
+        }}>
+          <h1 style={{
+            fontSize: '48px',
+            fontWeight: '300',
+            color: '#333',
+            margin: '0',
+            letterSpacing: '2px'
+          }}>
+            filesystem.io
+          </h1>
+        </div>
+      );
+    },
+  };
+
   return (
-    <Authenticator>
+    <Authenticator 
+      components={components}
+      hideSignUp={true}
+    >
       {({ signOut, user }) => (
         <FileSystemApp signOut={signOut} user={user} />
       )}
