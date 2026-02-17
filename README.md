@@ -432,6 +432,44 @@ I'd like this new action button to be transparent, with a black border and black
 
 I'd like the profile button at the top right to match the other buttons in color, but stay rounded as it is currently. Transparent with a black border and black text.
 
+I'd like to repurpose the "upload file" dialog to include a "browse" button to the right of the file name text.
+This button needs a standard browsing icon to reduce the size.
+
+I'd like to update the "action" menu as well as the right-click context menu to include "Upload File"
+which results in the "upload file" dialog with no file selected.
+
+#### TASK COMPLETED
+
+I've successfully added "Upload File" to both the Action menu and right-click context menu!
+
+## What Was Implemented
+
+### 1. **Action Menu - Upload File**
+- **New handler**: `handleActionUploadFile()` - Opens upload dialog with no file pre-selected
+- **Menu location**: Bottom of Action dropdown (after Create File)
+- **Smart parent logic**: Uses selected folder or parent folder
+
+### 2. **Context Menu - Upload File**
+- **New handler**: `handleUploadFile()` - Opens upload dialog with no file pre-selected
+- **Menu location**: Bottom of context menu (after Create File)
+- **Same smart logic**: Determines correct parent folder automatically
+
+### 3. **Upload Dialog Behavior**
+When opened from these menus:
+- **No file selected initially** - Empty upload dialog
+- **Browse button ready** - Users click to select file
+- **Parent folder determined** - Automatically uses the correct folder
+- **Same workflow** - Consistent with drag-and-drop uploads
+
+## Usage
+
+Users can now upload files via:
+1. **Drag & drop** - Drag file onto middle column (with pre-selected file)
+2. **Action menu** - Click Action → Upload File (no pre-selected file)
+3. **Context menu** - Right-click any file/folder → Upload File (no pre-selected file)
+
+All three methods open the same upload dialog with browse functionality!
+
 ### Manual steps to create react app
 
 npm create vite@latest my-react-app --template react

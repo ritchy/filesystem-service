@@ -422,6 +422,39 @@
   resize: vertical;
 }
 
+.input-with-button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-with-button .form-input {
+  flex: 1;
+}
+
+.browse-button {
+  padding: 8px 12px;
+  background-color: transparent;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.browse-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.browse-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
 .modal-buttons {
   display: flex;
   gap: 8px;

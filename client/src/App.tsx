@@ -51,6 +51,7 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
   const modalTextRef = useRef<HTMLTextAreaElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get user ID on mount
   useEffect(() => {
@@ -402,6 +403,18 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
     setShowActionMenu(false);
   };
 
+  const handleActionUploadFile = () => {
+    const targetFile = selectedMiddleItem || selectedTreeItem;
+    const parentId = targetFile?.type === 'folder'
+      ? targetFile.id
+      : targetFile?.parentFileId || rootFolderId;
+    setModal({
+      type: 'upload',
+      parentId,
+    });
+    setShowActionMenu(false);
+  };
+
   // Context menu actions
   const handleRename = () => {
     if (!contextMenu) return;
@@ -451,6 +464,15 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
     setContextMenu(null);
   };
 
+  const handleUploadFile = () => {
+    if (!contextMenu) return;
+    setModal({
+      type: 'upload',
+      parentId: contextMenu.file.type === 'folder' ? contextMenu.file.id : contextMenu.file.parentFileId || rootFolderId,
+    });
+    setContextMenu(null);
+  };
+
   // Handle file drop
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -478,6 +500,26 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+  };
+
+  // Handle browse button click
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle file selection from browse dialog
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFile = e.target.files[0];
+      setModal({
+        ...modal!,
+        type: 'upload',
+        uploadFile: selectedFile,
+      });
+      if (modalNameRef.current) {
+        modalNameRef.current.value = selectedFile.name;
+      }
+    }
   };
 
   // Modal submit
@@ -714,6 +756,9 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
                         <div className="context-menu-item" onClick={handleActionCreateFile}>
                           Create File
                         </div>
+                        <div className="context-menu-item" onClick={handleActionUploadFile}>
+                          Upload File
+                        </div>
                       </div>
                     )}
                   </div>
@@ -797,6 +842,9 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
           <div className="context-menu-item" onClick={handleCreateFile}>
             Create File
           </div>
+          <div className="context-menu-item" onClick={handleUploadFile}>
+            Upload File
+          </div>
         </div>
       )}
 
@@ -812,17 +860,39 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
             <form className="modal-form" onSubmit={handleModalSubmit}>
               <div className="form-group">
                 <label className="form-label">Name</label>
-                <input
-                  ref={modalNameRef}
-                  type="text"
-                  className="form-input"
-                  defaultValue={
-                    modal.type === 'rename' ? modal.file?.name :
-                      modal.type === 'upload' ? modal.uploadFile?.name : ''
-                  }
-                  required
-                  autoFocus
-                />
+                <div className="input-with-button">
+                  <input
+                    ref={modalNameRef}
+                    type="text"
+                    className="form-input"
+                    defaultValue={
+                      modal.type === 'rename' ? modal.file?.name :
+                        modal.type === 'upload' ? modal.uploadFile?.name : ''
+                    }
+                    required
+                    autoFocus
+                  />
+                  {modal.type === 'upload' && (
+                    <>
+                      <button
+                        type="button"
+                        className="browse-button"
+                        onClick={handleBrowseClick}
+                        title="Browse for file"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="browse-icon">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
               {modal.type === 'createFile' && (
                 <div className="form-group">
