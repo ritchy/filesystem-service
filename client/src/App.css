@@ -7,17 +7,107 @@
     sans-serif;
 }
 
-.header {
+/* Brand Header - Thin top bar */
+.brand-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(185, 185, 185, 0.7);
+  border-bottom: 1px solid #72757e;
+  min-height: 48px;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-image {
+  height: 32px;
+  width: auto;
+}
+
+.profile-section {
+  position: relative;
+}
+
+.profile-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: rgba(23, 23, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  color: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-size: 14px;
+}
+
+.profile-button:hover {
+  border-color: white;
+}
+
+.profile-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.profile-email {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  z-index: 1000;
+}
+
+.profile-menu-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  transition: background-color 0.2s;
+}
+
+.profile-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.profile-menu-item:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.profile-menu-item:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+/* Search Header - Second bar */
+.search-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
   border-bottom: 1px solid #ddd;
   background-color: #f5f5f5;
 }
 
 .search-container {
-  flex: 1;
+  flex: 0 1 600px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -34,7 +124,7 @@
 
 .clear-button {
   padding: 8px 16px;
-  background-color: #ff4444;
+  background-color: #d89e9e;
   color: white;
   border: none;
   border-radius: 4px;
@@ -43,7 +133,7 @@
 }
 
 .clear-button:hover {
-  background-color: #cc0000;
+  background-color: #a17070;
 }
 
 .toggle-button {

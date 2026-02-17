@@ -44,9 +44,11 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const modalNameRef = useRef<HTMLInputElement>(null);
   const modalTextRef = useRef<HTMLTextAreaElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   // Get user ID on mount
   useEffect(() => {
@@ -313,6 +315,20 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showProfileMenu]);
+
   // Context menu actions
   const handleRename = () => {
     if (!contextMenu) return;
@@ -514,7 +530,38 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
 
   return (
     <div className="App">
-      <div className="header">
+      {/* Brand Header */}
+      <div className="brand-header">
+        <div className="brand-logo">
+          filesystem.io
+        </div>
+        <div className="profile-section" ref={profileMenuRef}>
+          <button 
+            className="profile-button"
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+          >
+            <svg className="profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="profile-email">
+              {user?.signInDetails?.loginId || user?.username || 'User'}
+            </span>
+          </button>
+          {showProfileMenu && (
+            <div className="profile-dropdown">
+              <div className="profile-menu-item" onClick={() => {
+                setShowProfileMenu(false);
+                signOut && signOut();
+              }}>
+                Sign Out
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Search Header */}
+      <div className="search-header">
         <div className="search-container">
           <input
             type="text"
@@ -529,21 +576,9 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
             </button>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {user && (
-            <span style={{ fontSize: '14px', color: '#666' }}>
-              {user.signInDetails?.loginId || user.username}
-            </span>
-          )}
-          <button className="toggle-button" onClick={() => setShowInfoColumn(!showInfoColumn)}>
-            {showInfoColumn ? 'Hide Info' : 'Show Info'}
-          </button>
-          {signOut && (
-            <button className="toggle-button" onClick={signOut}>
-              Sign Out
-            </button>
-          )}
-        </div>
+        <button className="toggle-button" onClick={() => setShowInfoColumn(!showInfoColumn)}>
+          {showInfoColumn ? 'Hide Info' : 'Show Info'}
+        </button>
       </div>
 
       <div className="main-content">
