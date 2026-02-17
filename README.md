@@ -18,6 +18,7 @@ npx ampx sandbox
 
         - mkdir dist
         - cp amplify_outputs.json dist/amplify_outputs.json
+        - cp amplify_outputs.json client/src/amplify_outputs.json
         - cd client
         - npm install
         - BUILD_PATH=../dist npm run build
