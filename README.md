@@ -377,6 +377,61 @@ const monitorUpload = async () => {
 
 I'd like to add a progress bar in the upload dialog showing upload progress.
 
+### Client UI parent select
+
+I'd like to make a change to the client UI REACT app. In the middle column of the UI, the 2nd
+column, I'd like to optionally show the first item in the list with " .. " as a the label.
+If the currently selected file of type 'folder' has a parent, I'd like to show that ".." and, when
+double-clicked, the result is a selectoion of the parent of the currently selected folder.
+If the current folder has no parent, then don't show that ".." in the list.
+
+### Login landing page
+
+I'd like to add a login landing page to the client UI React app using the Authenticator component from the Amplify UI library. Once logged in, I'd like to keep the user logged in as long as possible, renewing a login token
+every time they return.
+
+As part of this, I'd like to update the root storage folder location, based on the unique user id once they log in.
+So this would be the existing S3 bucket already created with this application would then have a
+structure of "{bucket}/userID" as the starting point folder for the UI.
+
+### default setup
+
+in the amplify app, I'd like to associate the FileFolder and File models with the current user so every user that logs in gets their own set of results.
+
+in the client UI React app,if the root folder is empty, I'd like to create at least one child file type of 'folder' with the name 'files'
+
+### Top toolbar with logo and profile
+
+I'd like to add a thin header panel at the very top of the client UI React App with:
+
+ - the a branding logo in the top left using the following asset: src/assets/fs-letters-glass-small.png
+ - in the top right, generate a new "profile" button image as a head outline, along with the currently logged in email address, both serving as a single drop down button showing a "Sign Out" option.
+
+remove the current Sign Out" button in the panel below this new one
+remove the current email address label in this panel below this new one
+
+### customize the login page
+
+I want to customize the React client app login page that Amplify provides. I'd like to
+make the sign in button black. I'd like to place a the text "filesystem.io" above the login
+box with some spacing from the top of the page.
+
+I'd like to remove the ability to "Create Account" on the sign in page and just have the option to log in
+
+
+### Upload File changes
+
+In the React client app, I'd like to add an "Action" drop-down to the middle column which mirrors the context menu that pops up when you right-click a file.
+
+I'd also like to add an action to this pop-up menu to "upload file". The result of selecting this action should
+leverage the exiting "upload file" dialog with a file browsing option
+
+I'd like the new "Action" button to appear any time a File is selected, even in the tree of the first column
+
+I'd like this new action button to be transparent, with a black border and black text.
+
+I'd like the profile button at the top right to match the other buttons in color, but stay rounded as it is currently. Transparent with a black border and black text.
+
 ### Manual steps to create react app
 
 npm create vite@latest my-react-app --template react

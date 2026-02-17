@@ -45,10 +45,12 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
   const [isUploading, setIsUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
 
   const modalNameRef = useRef<HTMLInputElement>(null);
   const modalTextRef = useRef<HTMLTextAreaElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
 
   // Get user ID on mount
   useEffect(() => {
@@ -329,6 +331,77 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
     }
   }, [showProfileMenu]);
 
+  // Close action menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+        setShowActionMenu(false);
+      }
+    };
+
+    if (showActionMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showActionMenu]);
+
+  // Action menu handlers (mirror context menu actions)
+  const handleActionRename = () => {
+    const targetFile = selectedMiddleItem || selectedTreeItem;
+    if (!targetFile) return;
+    setModal({
+      type: 'rename',
+      file: targetFile,
+    });
+    setShowActionMenu(false);
+  };
+
+  const handleActionDelete = async () => {
+    const targetFile = selectedMiddleItem || selectedTreeItem;
+    if (!targetFile) return;
+    if (window.confirm(`Are you sure you want to delete "${targetFile.name}"?`)) {
+      try {
+        await deleteFiles([targetFile.id]);
+        await loadRootData();
+        if (selectedTreeItem?.id === targetFile.id) {
+          setSelectedTreeItem(null);
+          setMiddleColumnItems([]);
+        }
+        if (selectedMiddleItem?.id === targetFile.id) {
+          setSelectedMiddleItem(null);
+          setFileInfo(null);
+        }
+      } catch (err) {
+        alert('Failed to delete item');
+      }
+    }
+    setShowActionMenu(false);
+  };
+
+  const handleActionCreateFolder = () => {
+    const targetFile = selectedMiddleItem || selectedTreeItem;
+    const parentId = targetFile?.type === 'folder'
+      ? targetFile.id
+      : targetFile?.parentFileId || rootFolderId;
+    setModal({
+      type: 'createFolder',
+      parentId,
+    });
+    setShowActionMenu(false);
+  };
+
+  const handleActionCreateFile = () => {
+    const targetFile = selectedMiddleItem || selectedTreeItem;
+    const parentId = targetFile?.type === 'folder'
+      ? targetFile.id
+      : targetFile?.parentFileId || rootFolderId;
+    setModal({
+      type: 'createFile',
+      parentId,
+    });
+    setShowActionMenu(false);
+  };
+
   // Context menu actions
   const handleRename = () => {
     if (!contextMenu) return;
@@ -536,7 +609,7 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
           filesystem.io
         </div>
         <div className="profile-section" ref={profileMenuRef}>
-          <button 
+          <button
             className="profile-button"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
           >
@@ -614,8 +687,37 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
             >
-              <div className="column-header">
-                {selectedTreeItem ? selectedTreeItem.name : 'Select a folder'}
+              <div className="column-header-with-actions">
+                <span className="column-header-title">
+                  {selectedTreeItem ? selectedTreeItem.name : 'Select a folder'}
+                </span>
+                {(selectedMiddleItem || selectedTreeItem) && (
+                  <div className="action-menu-container" ref={actionMenuRef}>
+                    <button
+                      className="action-button"
+                      onClick={() => setShowActionMenu(!showActionMenu)}
+                    >
+                      Action ▼
+                    </button>
+                    {showActionMenu && (
+                      <div className="action-dropdown">
+                        <div className="context-menu-item" onClick={handleActionRename}>
+                          Rename
+                        </div>
+                        <div className="context-menu-item" onClick={handleActionDelete}>
+                          Delete
+                        </div>
+                        <div className="context-menu-separator" />
+                        <div className="context-menu-item" onClick={handleActionCreateFolder}>
+                          Create Folder
+                        </div>
+                        <div className="context-menu-item" onClick={handleActionCreateFile}>
+                          Create File
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {isDragging && (
                 <div className="drop-overlay">
@@ -807,7 +909,7 @@ function App() {
   };
 
   return (
-    <Authenticator 
+    <Authenticator
       components={components}
       hideSignUp={true}
     >

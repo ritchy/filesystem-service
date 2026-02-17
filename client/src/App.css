@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: rgba(185, 185, 185, 0.7);
+  background: rgba(185, 185, 185, 0.308);
   border-bottom: 1px solid #72757e;
   min-height: 48px;
 }
@@ -37,17 +37,17 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background-color: rgba(23, 23, 23, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: transparent;
+  border: 1px solid #000000;
   border-radius: 20px;
-  color: white;
+  color: #000000;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: background-color 0.2s;
   font-size: 14px;
 }
 
 .profile-button:hover {
-  border-color: white;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .profile-icon {
@@ -138,17 +138,18 @@
 
 .toggle-button {
   padding: 8px 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
+  background-color: transparent;
+  color: #000000;
+  border: 1px solid #000000;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
   white-space: nowrap;
+  transition: background-color 0.2s;
 }
 
 .toggle-button:hover {
-  background-color: #0056b3;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .main-content {
@@ -181,6 +182,57 @@
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.column-header-with-actions {
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.column-header-title {
+  flex: 1;
+}
+
+.action-menu-container {
+  position: relative;
+}
+
+.action-button {
+  padding: 4px 12px;
+  background-color: transparent;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: normal;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.action-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.action-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  z-index: 1000;
 }
 
 .file-item {
