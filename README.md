@@ -16,7 +16,36 @@ npx ampx sandbox
 
 ## Deploy React App
 
-BUILD_PATH=../dist react-scripts build
+        - mkdir dist
+        - cp amplify_outputs.json dist/amplify_outputs.json
+        - cd client
+        - npm install
+        - BUILD_PATH=../dist npm run build
+
+## Amplify.yml
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+frontend:
+  phases:
+    build:
+      commands:
+        - mkdir dist
+        - cp amplify_outputs.json dist/amplify_outputs.json
+        - cd client
+        - npm install
+        - BUILD_PATH=../dist npm run build
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .npm/**/*
 
 ## Start tracking via git
 
