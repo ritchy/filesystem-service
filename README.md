@@ -14,6 +14,10 @@ npx ampx sandbox
 node errors -> 'nvm use 22'
 npx ampx sandbox
 
+## Deploy React App
+
+BUILD_PATH=../dist react-scripts build
+
 ## Start tracking via git
 
 git init
