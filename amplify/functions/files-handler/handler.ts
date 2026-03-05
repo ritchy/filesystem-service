@@ -538,6 +538,24 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   }
 
   // Handle GET /files endpoint
+  return handleGetFiles();
+}
+
+export const handleGetFiles = async () => {
+  return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'Internal server error',
+          message: 'Unknown error',
+        }),
+      };
+    }
+      /**** 
   try {
     // Query for the root FileFolder
     const { data: fileFolders } = await client.models.FileFolder.list();
@@ -551,6 +569,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       const now = new Date().toISOString();
 
       // Create the root FileFolder
+      /*** 
       const { data: newFileFolder } = await client.models.FileFolder.create({
         name: 'root',
         createdDate: now,
@@ -618,6 +637,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       files = newFiles
     }
 
+    
     // Format the files to match the expected response structure
     const formattedFiles = files.map((file) => {
       const result: any = {
@@ -660,3 +680,5 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     };
   }
 };
+}
+    ****/

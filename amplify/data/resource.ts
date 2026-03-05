@@ -20,6 +20,8 @@ const schema = a.schema({
       createdDate: a.datetime().required(),
       lastUpdatedDate: a.datetime().required(),
       files: a.hasMany('File', 'fileFolderId'),
+      memberId: a.id().required(),
+      member: a.belongsTo('Member', 'memberId'),
     })
     .authorization((allow) => [
       allow.owner()
@@ -52,6 +54,17 @@ const schema = a.schema({
       allow.owner()
       //allow.authenticated().to(['read']), // Allow authenticated users to read (optional)
     ]),
+  Member: a.model({
+    id: a.id().required(),
+    userId: a.id(),
+    name: a.string().required(),
+    handle: a.string().required(),
+    phoneNumber: a.phone(),
+    email: a.email(),
+    fileFolder: a.hasOne('FileFolder', 'memberId'),
+  })
+    // .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.authenticated()]),
 
 }).authorization(allow => [allow.resource(filesHandler)]);
 

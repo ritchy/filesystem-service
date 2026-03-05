@@ -40,35 +40,32 @@ export const getDirectUrl = (fileId: string): string => {
 // Fetch root FileFolder and all files, creating the root folder if it doesn't exist
 export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFiles: FileItem[] }> => {
   try {
-    const { data: fileFolders } = await client.models.FileFolder.list();
-
-    let rootFolder;
-
-    // Create root folder if it doesn't exist
-    if (!fileFolders || fileFolders.length === 0) {
-      console.log('No root folder found, creating one...');
-      const now = new Date().toISOString();
-      const { data: newRootFolder } = await client.models.FileFolder.create({
-        name: 'root',
-        createdDate: now,
-        lastUpdatedDate: now,
-      });
-
-      if (!newRootFolder) {
-        throw new Error('Failed to create root folder');
-      }
-
-      rootFolder = newRootFolder;
-      console.log('Root folder created:', rootFolder);
-
-      // Return with empty files array since folder was just created
-      return {
-        rootFolderId: rootFolder.id,
-        rootFiles: []
-      };
+    // Get the current authenticated user ID
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('No authenticated user found');
     }
 
-    rootFolder = fileFolders[0];
+    // Find the Member associated with the current user
+    const { data: members } = await client.models.Member.list({
+      filter: {
+        userId: { eq: userId }
+      }
+    });
+
+    if (!members || members.length === 0) {
+      throw new Error(`No Member found for userId: ${userId}`);
+    }
+
+    const member = members[0];
+
+    // Get the Member's associated FileFolder
+    const { data: rootFolder } = await member.fileFolder();
+
+    if (!rootFolder) {
+      throw new Error(`No FileFolder found for Member: ${member.id}`);
+    }
+
     const { data: files } = await client.models.File.list({
       filter: {
         fileFolderId: { eq: rootFolder.id },
