@@ -20,6 +20,7 @@ const schema = a.schema({
       createdDate: a.datetime().required(),
       lastUpdatedDate: a.datetime().required(),
       files: a.hasMany('File', 'fileFolderId'),
+      rootFileId: a.id().required(), // Reference to the root File representing the folder itself
       memberId: a.id().required(),
       member: a.belongsTo('Member', 'memberId'),
     })
