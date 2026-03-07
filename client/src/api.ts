@@ -73,25 +73,13 @@ export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFil
       }
     });
 
-    let rootFiles = files as unknown as FileItem[];
+    let rootFiles = fetchChildren(rootFolder.rootFileId) as unknown as FileItem[];
+    //let rootFiles = files as unknown as FileItem[];
 
     // If root folder is empty, create a default 'files' folder
     if (!rootFiles || rootFiles.length === 0) {
       console.log('Root folder is empty, creating default "files" folder...');
-      const now = new Date().toISOString();
-      const { data: filesFolder } = await client.models.File.create({
-        name: 'files',
-        type: 'folder',
-        size: 0,
-        fileFolderId: rootFolder.id,
-        createdDate: now,
-        lastUpdatedDate: now,
-      });
-
-      if (filesFolder) {
-        rootFiles = [filesFolder as unknown as FileItem];
-        console.log('Default "files" folder created');
-      }
+      rootFiles = []
     }
 
     return {
