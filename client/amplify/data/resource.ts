@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+import { filesHandler } from '../functions/files-handler/resource';
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -11,7 +12,7 @@ const schema = a.schema({
   // Enum for file type
   FileType: a.enum(['file', 'folder']),
 
-  // Root filesystem folder container
+  // Root filesystem folder container - each user gets their own
   FileFolder: a
     .model({
       id: a.id().required(),
@@ -19,10 +20,16 @@ const schema = a.schema({
       createdDate: a.datetime().required(),
       lastUpdatedDate: a.datetime().required(),
       files: a.hasMany('File', 'fileFolderId'),
+      rootFileId: a.id().required(), // Reference to the root File representing the folder itself
+      memberId: a.id().required(),
+      member: a.belongsTo('Member', 'memberId'),
     })
-    .authorization((allow) => [allow.guest()]),
+    .authorization((allow) => [
+      allow.owner()
+      //allow.authenticated().to(['read']), // Allow authenticated users to read (optional)
+    ]),
 
-  // File model - can represent both files and folders
+  // File model - can represent both files and folders, isolated per user
   File: a
     .model({
       id: a.id().required(),
@@ -33,27 +40,41 @@ const schema = a.schema({
       fileReference: a.string(), // Store S3 reference for binary files
       createdDate: a.datetime().required(),
       lastUpdatedDate: a.datetime().required(),
-      
+
       // Relationship to parent FileFolder (root level)
       fileFolderId: a.id(),
       fileFolder: a.belongsTo('FileFolder', 'fileFolderId'),
-      
+
       // Self-referential relationship for nested structure
       // If this file is of type 'folder', it can have children
       parentFileId: a.id(),
       parentFile: a.belongsTo('File', 'parentFileId'),
       childFiles: a.hasMany('File', 'parentFileId'),
     })
-    .authorization((allow) => [allow.guest()]),
+    .authorization((allow) => [
+      allow.owner()
+      //allow.authenticated().to(['read']), // Allow authenticated users to read (optional)
+    ]),
+  Member: a.model({
+    id: a.id().required(),
+    userId: a.id(),
+    name: a.string().required(),
+    handle: a.string().required(),
+    phoneNumber: a.phone(),
+    email: a.email(),
+    fileFolder: a.hasOne('FileFolder', 'memberId'),
+  })
+    // .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.authenticated()]),
 
-});
+}).authorization(allow => [allow.resource(filesHandler)]);
 
 export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'identityPool',
+    defaultAuthorizationMode: 'userPool',
   },
 });
 

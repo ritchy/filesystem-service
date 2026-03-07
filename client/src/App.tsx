@@ -69,20 +69,24 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
   }, []);
 
   const loadRootData = async () => {
+    console.log('Loading root folder data...');
     try {
       setLoading(true);
       setError(null);
       const { rootFolderId: id, rootFiles } = await fetchRootFolder();
       setRootFolderId(id);
+      console.log("Fetched root folder ID:", id);
       const nodes: TreeNode[] = rootFiles.map(file => ({
         file,
         children: [],
         isExpanded: false,
         isLoaded: false,
       }));
+      console.log('App.tsx::created nodes...:', nodes);
       setTreeData(nodes);
       setLoading(false);
     } catch (err) {
+      console.error('Failed to set up tree node:', err);
       setError('Failed to load filesystem data');
       setLoading(false);
     }

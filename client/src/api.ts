@@ -6,6 +6,8 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 import type { Schema } from '../../amplify/data/resource';
 import amplifyOutputs from './amplify_outputs.json';
 import { FileItem, FileInfo } from './types';
+import { getCurrentUser } from 'aws-amplify/auth';
+import { log } from 'console';
 
 // Configure Amplify with token refresh
 Amplify.configure(amplifyOutputs, {
@@ -26,6 +28,14 @@ export const getCurrentUserId = async (): Promise<string | null> => {
   }
 };
 
+export const getCurrentUserInfo = async (): Promise<string | null> => {
+  const { username, userId, signInDetails } = await getCurrentUser();
+  console.log("username", username);
+  console.log("user id", userId);
+  console.log("sign-in details", signInDetails);
+  return userId
+}
+
 // Helper to get file icon URL
 export const getFileIconUrl = (type: 'file' | 'folder', size: 'small' | 'big' = 'small'): string => {
   const iconName = type === 'folder' ? 'folder.svg' : 'txt.svg';
@@ -39,22 +49,31 @@ export const getDirectUrl = (fileId: string): string => {
 
 // Fetch root FileFolder and all files, creating the root folder if it doesn't exist
 export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFiles: FileItem[] }> => {
+  console.log('Fetching root folder and files...');
   try {
     // Get the current authenticated user ID
-    const userId = await getCurrentUserId();
+    const userId = await getCurrentUserInfo();
+    //console.log('Current user ID:', userId);
+    //const userId = await getCurrentUserId();
     if (!userId) {
       throw new Error('No authenticated user found');
+    } else {
+      console.log('Authenticated user ID:', userId);
     }
 
+    console.log('Fetching Member for userId:', userId);
     // Find the Member associated with the current user
     const { data: members } = await client.models.Member.list({
       filter: {
+        //userId: { eq: userId }
         userId: { eq: userId }
       }
     });
 
     if (!members || members.length === 0) {
       throw new Error(`No Member found for userId: ${userId}`);
+    } else {
+      console.log('Found Member for user:', members[0]);
     }
 
     const member = members[0];
@@ -73,15 +92,17 @@ export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFil
       }
     });
 
-    let rootFiles = fetchChildren(rootFolder.rootFileId) as unknown as FileItem[];
+    let rootFiles = await fetchChildren(rootFolder.rootFileId) as unknown as FileItem[];
     //let rootFiles = files as unknown as FileItem[];
 
+    console.log('Fetched root folder and files:', { rootFolder, rootFiles });
     // If root folder is empty, create a default 'files' folder
     if (!rootFiles || rootFiles.length === 0) {
       console.log('Root folder is empty, creating default "files" folder...');
       rootFiles = []
     }
 
+    //console.log('Final root folder data:', { rootFolder, rootFiles });
     return {
       rootFolderId: rootFolder.id,
       rootFiles: rootFiles

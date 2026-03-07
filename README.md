@@ -13,6 +13,21 @@ npm create amplify@latest
 npx ampx sandbox
 node errors -> 'nvm use 22'
 npx ampx sandbox
+npx ampx sandbox delete
+
+//generate swift classes
+npx ampx generate graphql-client-code --format modelgen --model-target swift
+
+
+## Sandbox user management
+
+npx ampx sandbox secret set username
+npx ampx sandbox secret set password
+npm install @aws-amplify/seed --save-dev
+npx ampx sandbox seed 
+
+## might have to delete sandbox: npx ampx sandbox delete
+
 
 ## Deploy React App
 
