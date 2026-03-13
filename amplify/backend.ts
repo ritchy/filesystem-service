@@ -85,6 +85,10 @@ infoIdResource.addMethod('GET', lambdaIntegration);
 const directResource = apiGateway.root.addResource('direct');
 directResource.addMethod('GET', lambdaIntegration);
 
+// Add /share endpoint
+const shareResource = apiGateway.root.addResource('share');
+shareResource.addMethod('GET', lambdaIntegration);
+
 // Add /icons/{size}/{name} endpoint with separate icons handler
 const iconsLambdaIntegration = new LambdaIntegration(
   backend.iconsHandler.resources.lambda

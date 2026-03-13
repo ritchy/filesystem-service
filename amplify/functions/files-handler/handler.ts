@@ -429,6 +429,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
         // Generate pre-signed URL (valid for 1 hour)
         const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        console.log('Generated pre-signed URL (valid for 1 hour):', presignedUrl);
 
         // Redirect to the pre-signed URL
         return {
@@ -462,6 +463,128 @@ export const handler: APIGatewayProxyHandler = async (event) => {
           'Content-Type': 'text/plain',
         },
         body: '',
+      };
+    }
+  }
+
+  // Handle /share endpoint
+  if (event.path === '/dev/share' || event.resource === '/share') {
+    try {
+      // Get the id from query parameters
+      const id = event.queryStringParameters?.id;
+
+      if (!id) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Missing id parameter' }),
+        };
+      }
+
+      // Query the File by id
+      const { data: file } = await client.models.File.get({ id });
+
+      if (!file) {
+        return {
+          statusCode: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'File not found' }),
+        };
+      }
+
+      // Ensure the record is of type 'file'
+      if (file.type !== 'file') {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Provided id does not refer to a file' }),
+        };
+      }
+
+      // Ensure the file has an S3 reference
+      if (!file.fileReference) {
+        return {
+          statusCode: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'File has no associated download' }),
+        };
+      }
+
+      // Get S3 bucket name from environment
+      const bucketName = process.env.STORAGE_BUCKET_NAME;
+
+      if (!bucketName) {
+        console.error('STORAGE_BUCKET_NAME environment variable not set');
+        return {
+          statusCode: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'Storage configuration error' }),
+        };
+      }
+
+      // Create S3 client
+      const s3Client = new S3Client({ region: env.AWS_REGION || 'us-east-1' });
+
+      // Create GetObject command
+      const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: file.fileReference,
+      });
+
+      const expiresIn = 3600; // 1 hour in seconds
+
+      // Generate pre-signed URL valid for 1 hour
+      const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
+      console.log('Generated pre-signed share URL (valid for 1 hour):', presignedUrl);
+
+      // Calculate expiry as ISO date string
+      const expires = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: presignedUrl,
+          expires,
+        }),
+      };
+    } catch (error) {
+      console.error('Error generating share URL:', error);
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }),
       };
     }
   }
