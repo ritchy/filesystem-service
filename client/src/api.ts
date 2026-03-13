@@ -47,6 +47,17 @@ export const getDirectUrl = (fileId: string): string => {
   return `${API_BASE_URL}direct?id=${fileId}`;
 };
 
+// Get a pre-signed share link for a file
+export const getShareLink = async (fileId: string): Promise<{ url: string; expires: string }> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}share?id=${fileId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting share link:', error);
+    throw error;
+  }
+};
+
 // Fetch root FileFolder and all files, creating the root folder if it doesn't exist
 export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFiles: FileItem[] }> => {
   console.log('Fetching root folder and files...');

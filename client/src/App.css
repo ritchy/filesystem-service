@@ -573,6 +573,42 @@
   cursor: not-allowed;
 }
 
+/* Share Dialog Styles */
+.share-dialog {
+  min-width: 480px;
+  max-width: 680px;
+}
+
+.share-url-box {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px 12px;
+  word-break: break-all;
+  margin-bottom: 8px;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.share-url-text {
+  font-size: 12px;
+  color: #555;
+  font-family: monospace;
+}
+
+.share-expires {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 20px;
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 /* Amplify Authenticator Customization */
 [data-amplify-authenticator] {
   --amplify-components-button-primary-background-color: #000000;

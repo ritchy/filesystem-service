@@ -13,6 +13,7 @@ import {
   searchFiles,
   getFileIconUrl,
   getDirectUrl,
+  getShareLink,
   uploadFile,
   getCurrentUserId,
 } from './api';
@@ -46,6 +47,7 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
   const [userId, setUserId] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
+  const [shareDialog, setShareDialog] = useState<{ url: string; expires: string; fileName: string } | null>(null);
 
   const modalNameRef = useRef<HTMLInputElement>(null);
   const modalTextRef = useRef<HTMLTextAreaElement>(null);
@@ -143,7 +145,17 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
         console.error('Failed to load children:', err);
       }
     } else {
+      // It's a file — clear middle column and fetch file info for the info panel
       setMiddleColumnItems([]);
+      if (showInfoColumn) {
+        try {
+          const info = await fetchFileInfo(file.id);
+          setFileInfo(info);
+        } catch (err) {
+          console.error('Failed to load file info:', err);
+          setFileInfo(null);
+        }
+      }
     }
   };
 
@@ -417,6 +429,19 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
       parentId,
     });
     setShowActionMenu(false);
+  };
+
+  const handleActionShareLink = async () => {
+    const targetFile = selectedMiddleItem || selectedTreeItem;
+    if (!targetFile || targetFile.type !== 'file') return;
+    setShowActionMenu(false);
+    try {
+      const { url, expires } = await getShareLink(targetFile.id);
+      setShareDialog({ url, expires, fileName: targetFile.name });
+    } catch (err) {
+      alert('Failed to generate share link');
+      console.error(err);
+    }
   };
 
   // Context menu actions
@@ -763,6 +788,14 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
                         <div className="context-menu-item" onClick={handleActionUploadFile}>
                           Upload File
                         </div>
+                        {(selectedMiddleItem?.type === 'file' || selectedTreeItem?.type === 'file') && (
+                          <>
+                            <div className="context-menu-separator" />
+                            <div className="context-menu-item" onClick={handleActionShareLink}>
+                              Share Link
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -799,31 +832,37 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
               ))}
             </div>
 
-            {showInfoColumn && (
-              <div className="column">
-                <div className="column-header">Info</div>
-                {selectedMiddleItem && fileInfo && (
-                  <div className="info-panel">
-                    <div className="info-item">
-                      <div className="info-label">Name</div>
-                      <div className="info-value">{selectedMiddleItem.name}</div>
+            {showInfoColumn && (() => {
+              // Determine which file to show info for:
+              // prefer the middle-column selection; fall back to a tree-selected file
+              const infoFile = selectedMiddleItem
+                ?? (selectedTreeItem?.type === 'file' ? selectedTreeItem : null);
+              return (
+                <div className="column">
+                  <div className="column-header">Info</div>
+                  {infoFile && fileInfo && (
+                    <div className="info-panel">
+                      <div className="info-item">
+                        <div className="info-label">Name</div>
+                        <div className="info-value">{infoFile.name}</div>
+                      </div>
+                      <div className="info-item">
+                        <div className="info-label">Type</div>
+                        <div className="info-value">{infoFile.type}</div>
+                      </div>
+                      <div className="info-item">
+                        <div className="info-label">Count</div>
+                        <div className="info-value">{fileInfo.count} files</div>
+                      </div>
+                      <div className="info-item">
+                        <div className="info-label">Size</div>
+                        <div className="info-value">{parseInt(fileInfo.size).toLocaleString()} bytes</div>
+                      </div>
                     </div>
-                    <div className="info-item">
-                      <div className="info-label">Type</div>
-                      <div className="info-value">{selectedMiddleItem.type}</div>
-                    </div>
-                    <div className="info-item">
-                      <div className="info-label">Count</div>
-                      <div className="info-value">{fileInfo.count} files</div>
-                    </div>
-                    <div className="info-item">
-                      <div className="info-label">Size</div>
-                      <div className="info-value">{parseInt(fileInfo.size).toLocaleString()} bytes</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
@@ -951,6 +990,67 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {shareDialog && (
+        <div className="modal-overlay">
+          <div className="modal-content share-dialog">
+            <div className="modal-title">Share "{shareDialog.fileName}"</div>
+            <div className="share-url-box">
+              <span className="share-url-text">{shareDialog.url}</span>
+            </div>
+            <div className="share-expires">
+              Expires: {new Date(shareDialog.expires).toLocaleString()}
+            </div>
+            <div className="share-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  navigator.clipboard.writeText(shareDialog.url);
+                }}
+              >
+                📋 Copy Link
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => window.open(shareDialog.url, '_blank')}
+              >
+                🔗 Open in New Tab
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={async () => {
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: shareDialog.fileName,
+                        url: shareDialog.url,
+                      });
+                    } catch (err) {
+                      console.log('Share cancelled or failed:', err);
+                    }
+                  } else {
+                    alert('Web Share API is not supported in this browser.');
+                  }
+                }}
+              >
+                ↗ Share
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => window.open(shareDialog.url)}
+              >
+                👁 Preview
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => setShareDialog(null)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
