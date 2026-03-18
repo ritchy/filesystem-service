@@ -551,11 +551,11 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         Key: file.fileReference,
       });
 
-      const expiresIn = 3600; // 1 hour in seconds
+      const expiresIn = 10800; // 3 hours in seconds
 
-      // Generate pre-signed URL valid for 1 hour
+      // Generate pre-signed URL valid for 3 hours
       const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
-      console.log('Generated pre-signed share URL (valid for 1 hour):', presignedUrl);
+      console.log('Generated pre-signed share URL (valid for 3 hours):', presignedUrl);
 
       // Calculate expiry as ISO date string
       const expires = new Date(Date.now() + expiresIn * 1000).toISOString();
