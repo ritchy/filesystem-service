@@ -530,3 +530,36 @@ npm run dev
 - Add Dynamo Resources (1 file system document per login)
 - Add API via amplify (Gateway/lambda)
 - Add S3 integration for actual file storage
+
+
+# Add new share endpoint
+
+I'd like to add a new endpoint similar to direct endpoint: "{API_URL}/direct?id={id}, but for sharing a download link rather than redirecting to same URL.
+
+The new endpoint is: "{API_URL}/share?id={id}"
+
+  - finds the associated file of type 'file' associated with the provided id.
+  - Generates pre-signed URL valid for 1 hour
+    - const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  - returns a basic JSON document with the following format: 
+  {
+    url: "{presignedUrl}",
+    expires: "{ISO formatted date representing when url expires}",
+  }
+
+# take advantage of new endpoint
+
+In the client React app, I'd like to add a new menu item to the 'Action' dropdown in the middle column. 
+
+- makes a call to the new endpoint {API_URL}/share?id={id}
+- the returned 'url' value is then used in an optional popup with 5 options:
+  - Copy Link - copies 'url' value to the clipboard
+  - Open in new tab - opens the link in a new tab
+  - Share - file share option with registered apps that can take a file represented an url
+  - Preview - opens preview of new url
+  - Cancel - dismisses the dialog
+
+# Info shown when file selected in first column
+
+In the client React app, when a file of type 'file' is selected in the first column, I'd like it to
+behave like it does when selected in the middle column and show the file info in the third "info" column.
