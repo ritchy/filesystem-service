@@ -53,3 +53,15 @@ Two targeted changes were made to `client/src/App.tsx`:
 1. **`handleTreeSelect`** — When a tree item of type `'file'` is clicked, it now calls `fetchFileInfo` and populates `fileInfo` state (the same way `handleMiddleSelect` already did), rather than just clearing it.
 
 2. **Info panel** — The render logic now computes `infoFile = selectedMiddleItem ?? (selectedTreeItem?.type === 'file' ? selectedTreeItem : null)`. This means the info panel shows details for whichever file is active — a middle-column selection takes priority, but if only a tree-column file is selected (with no middle-column selection), its info is displayed instead.
+
+# select folders too
+
+currently, when a file of type "file" is selected, the "Info" column is populated, I'd also like to populate that 
+"info" column when a file of type "Folder" is selected. The current endpoint called, /info/{id}, is already set up to handle Files of type "Folder".
+
+
+Two targeted changes were made to `client/src/App.tsx`:
+
+1. **`handleTreeSelect`** — Added a `fetchFileInfo` call in the `folder` branch (alongside the existing `fetchChildren` call), so that selecting a folder in the tree now also populates `fileInfo` state via the `/info/{id}` endpoint.
+
+2. **Info column rendering** — Changed the `infoFile` fallback from `selectedTreeItem?.type === 'file' ? selectedTreeItem : null` to simply `selectedTreeItem`, so the Info panel is rendered for any tree-selected item (file or folder), not just files.

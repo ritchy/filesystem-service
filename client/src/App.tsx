@@ -144,6 +144,15 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
       } catch (err) {
         console.error('Failed to load children:', err);
       }
+      if (showInfoColumn) {
+        try {
+          const info = await fetchFileInfo(file.id);
+          setFileInfo(info);
+        } catch (err) {
+          console.error('Failed to load file info:', err);
+          setFileInfo(null);
+        }
+      }
     } else {
       // It's a file — clear middle column and fetch file info for the info panel
       setMiddleColumnItems([]);
@@ -834,9 +843,8 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
 
             {showInfoColumn && (() => {
               // Determine which file to show info for:
-              // prefer the middle-column selection; fall back to a tree-selected file
-              const infoFile = selectedMiddleItem
-                ?? (selectedTreeItem?.type === 'file' ? selectedTreeItem : null);
+              // prefer the middle-column selection; fall back to the tree-selected item (file or folder)
+              const infoFile = selectedMiddleItem ?? selectedTreeItem;
               return (
                 <div className="column">
                   <div className="column-header">Info</div>
