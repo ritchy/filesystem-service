@@ -854,17 +854,23 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
                         <div className="info-label">Name</div>
                         <div className="info-value">{infoFile.name}</div>
                       </div>
-                      <div className="info-item">
-                        <div className="info-label">Type</div>
-                        <div className="info-value">{infoFile.type}</div>
-                      </div>
-                      <div className="info-item">
-                        <div className="info-label">Count</div>
-                        <div className="info-value">{fileInfo.count} files</div>
-                      </div>
+                      {infoFile.type === 'folder' && (
+                        <div className="info-item">
+                          <div className="info-label">Count</div>
+                          <div className="info-value">{fileInfo.count} files</div>
+                        </div>
+                      )}
                       <div className="info-item">
                         <div className="info-label">Size</div>
                         <div className="info-value">{parseInt(fileInfo.size).toLocaleString()} bytes</div>
+                      </div>
+                      <div className="info-item">
+                        <div className="info-label">Created</div>
+                        <div className="info-value">{new Date(infoFile.createdDate).toLocaleString()}</div>
+                      </div>
+                      <div className="info-item">
+                        <div className="info-label">Last Updated</div>
+                        <div className="info-value">{new Date(infoFile.lastUpdatedDate).toLocaleString()}</div>
                       </div>
                     </div>
                   )}
