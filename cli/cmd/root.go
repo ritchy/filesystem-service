@@ -29,6 +29,7 @@ func init() {
 	renameCmd.RunE = withAutoLogin(runRename)
 	createCmd.RunE = withAutoLogin(runCreate)
 	moveCmd.RunE = withAutoLogin(runMove)
+	uploadCmd.RunE = withAutoLogin(runUpload)
 
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(listCmd)
@@ -36,4 +37,5 @@ func init() {
 	rootCmd.AddCommand(renameCmd)
 	rootCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(moveCmd)
+	rootCmd.AddCommand(uploadCmd)
 }

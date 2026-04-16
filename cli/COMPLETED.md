@@ -211,3 +211,50 @@ The `move` command is now available. Here's a summary:
 fs move /folder/sub-folder /different_folder   # move a folder
 fs move /folder/file.txt   /different_folder   # move a file
 ```
+
+# add upload capability
+
+## prompt
+
+I'd like to add 'upload' functionality to the cli. There is similar TypeScript functionality in api.ts uploadFile(). 
+
+Example commands:
+
+```
+fs upload file_to_upload.txt /folder/sub-folder # uploads with 'sub-folder' as parentFile
+fs upload file_to_upload.txt /  # uploads to root folder
+```
+
+the process is basically this:
+
+- get the current 'userId' using the auth session (session.identityId or session.userSub)
+- create an 's3Path' with the following structure: "files/${userId}/${Date.now()}_${fileName}"
+- upload the file to S3 with that "s3Path"
+- use the 's3Path' as the File.fileReference value when create a new File entry
+- create the new File entry
+
+## completed
+
+The `upload` command is now available, fully mirroring the React app's `uploadFile()` flow.
+
+**New files / changes:**
+
+**`internal/auth/identity.go`** – new `GetAWSCredentials(ctx, idToken)` that exchanges a Cognito ID token for temporary AWS credentials via the Identity Pool (same flow as Amplify's `fetchAuthSession()` → `session.identityId`). Returns the resolved `IdentityID` plus `AccessKeyID / SecretAccessKey / SessionToken`.
+
+**`internal/api/filesystem.go`** – new `CreateFile(ctx, parentFileID, fileFolderID, name, fileReference, size)` GraphQL mutation that stores the file record with `type: "file"` and `fileReference` set to the S3 object key.
+
+**`cmd/upload.go`** – new command implementing the exact sequence from the React app:
+1. Read local file from disk
+2. Resolve destination folder with `NavigatePath`
+3. Exchange ID token → Identity Pool credentials (`GetAWSCredentials`)
+4. Build `s3Key = "files/{identityId}/{UnixMs}_{fileName}"`
+5. Upload bytes to S3 via `PutObject` with auto-detected `Content-Type`
+6. Create the `File` database record via `CreateFile` mutation with `fileReference: s3Key`
+
+**`cmd/root.go`** – `uploadCmd.RunE` wrapped with `withAutoLogin` and registered.
+
+```
+fs upload file_to_upload.txt /folder/sub-folder   # upload with sub-folder as parent
+fs upload file_to_upload.txt /                    # upload to root folder
+```
+

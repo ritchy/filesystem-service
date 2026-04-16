@@ -88,6 +88,50 @@ func (c *Client) CreateFolder(ctx context.Context, parentFileID, fileFolderID, n
 	return &result.CreateFile, nil
 }
 
+// CreateFile creates a new file entry in the database after a successful S3
+// upload.  fileReference is the S3 object key (the s3Path used during upload).
+func (c *Client) CreateFile(ctx context.Context, parentFileID, fileFolderID, name, fileReference string, size int) (*FileItem, error) {
+	const mutation = `
+	mutation CreateFile($input: CreateFileInput!) {
+		createFile(input: $input) {
+			id
+			name
+			type
+			size
+			fileReference
+			createdDate
+			lastUpdatedDate
+			parentFileId
+			fileFolderId
+		}
+	}`
+
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	variables := map[string]interface{}{
+		"input": map[string]interface{}{
+			"name":            name,
+			"type":            "file",
+			"size":            size,
+			"fileReference":   fileReference,
+			"parentFileId":    parentFileID,
+			"fileFolderId":    fileFolderID,
+			"createdDate":     now,
+			"lastUpdatedDate": now,
+		},
+	}
+
+	var result struct {
+		CreateFile FileItem `json:"createFile"`
+	}
+
+	if err := c.execute(ctx, mutation, variables, &result); err != nil {
+		return nil, fmt.Errorf("createFile mutation: %w", err)
+	}
+
+	return &result.CreateFile, nil
+}
+
 // MoveFile moves a file or folder to a new parent folder by updating its
 // parentFileId.  destFolderID must be the ID of an existing folder File item.
 func (c *Client) MoveFile(ctx context.Context, itemID, destFolderID string) (*FileItem, error) {
