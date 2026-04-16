@@ -183,3 +183,31 @@ fs create /documents/work         # create a nested folder
 fs create /folder/new_folder      # as requested
 ```
 
+# move functionality
+
+## prompt
+
+I'd like to add 'move' functionality to the cli so you can move files and folders by changing their parentFile value.
+
+fs move /folder/sub-folder /different_folder/ - moves a folder to a new folder
+fs move /folder/file.txt /different_folder - moves a file to a new folder
+
+ - you cannot move a File to a parent File of type 'file', but only to File of type 'folder'
+
+## completed
+
+The `move` command is now available. Here's a summary:
+
+**`api/filesystem.go`** – new `MoveFile(ctx, itemID, destFolderID)` method that runs the `updateFile` GraphQL mutation, setting only the `parentFileId` field to the destination folder's ID (no name change, no copy — a pure parent reassignment).
+
+**`cmd/move.go`** – new command with two required args:
+- **Source** (`/folder/sub-folder` or `/folder/file.txt`): resolved first as a folder via `NavigatePath`, then as a file via `FindFileByPath`. Moving the root is guarded explicitly.
+- **Destination** (`/different_folder`): resolved exclusively with `NavigatePath`, which only matches folders — this automatically enforces the rule that you cannot move an item into a file. If the destination path doesn't resolve to a folder, a clear error is returned.
+- On success: `Moved folder "sub-folder" → /different_folder`
+
+**`cmd/root.go`** – `moveCmd.RunE` wrapped with `withAutoLogin` and registered.
+
+```
+fs move /folder/sub-folder /different_folder   # move a folder
+fs move /folder/file.txt   /different_folder   # move a file
+```

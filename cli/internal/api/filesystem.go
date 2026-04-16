@@ -88,6 +88,38 @@ func (c *Client) CreateFolder(ctx context.Context, parentFileID, fileFolderID, n
 	return &result.CreateFile, nil
 }
 
+// MoveFile moves a file or folder to a new parent folder by updating its
+// parentFileId.  destFolderID must be the ID of an existing folder File item.
+func (c *Client) MoveFile(ctx context.Context, itemID, destFolderID string) (*FileItem, error) {
+	const mutation = `
+	mutation UpdateFile($input: UpdateFileInput!) {
+		updateFile(input: $input) {
+			id
+			name
+			type
+			parentFileId
+			fileFolderId
+		}
+	}`
+
+	variables := map[string]interface{}{
+		"input": map[string]interface{}{
+			"id":           itemID,
+			"parentFileId": destFolderID,
+		},
+	}
+
+	var result struct {
+		UpdateFile FileItem `json:"updateFile"`
+	}
+
+	if err := c.execute(ctx, mutation, variables, &result); err != nil {
+		return nil, fmt.Errorf("updateFile mutation: %w", err)
+	}
+
+	return &result.UpdateFile, nil
+}
+
 // GetMemberByUserID fetches the Member whose userId matches the Cognito sub.
 func (c *Client) GetMemberByUserID(ctx context.Context, userID string) (*Member, error) {
 	const query = `
