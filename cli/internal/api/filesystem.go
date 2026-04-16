@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ── Domain types ──────────────────────────────────────────────────────────────
@@ -43,6 +44,49 @@ type Member struct {
 }
 
 // ── API methods ───────────────────────────────────────────────────────────────
+
+// CreateFolder creates a new folder under parentFileID within the given
+// FileFolder container (fileFolderID).  It mirrors the React app's
+// createFolder() which calls client.models.File.create() with type "folder".
+func (c *Client) CreateFolder(ctx context.Context, parentFileID, fileFolderID, name string) (*FileItem, error) {
+	const mutation = `
+	mutation CreateFile($input: CreateFileInput!) {
+		createFile(input: $input) {
+			id
+			name
+			type
+			size
+			createdDate
+			lastUpdatedDate
+			parentFileId
+			fileFolderId
+		}
+	}`
+
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	variables := map[string]interface{}{
+		"input": map[string]interface{}{
+			"name":            name,
+			"type":            "folder",
+			"size":            0,
+			"parentFileId":    parentFileID,
+			"fileFolderId":    fileFolderID,
+			"createdDate":     now,
+			"lastUpdatedDate": now,
+		},
+	}
+
+	var result struct {
+		CreateFile FileItem `json:"createFile"`
+	}
+
+	if err := c.execute(ctx, mutation, variables, &result); err != nil {
+		return nil, fmt.Errorf("createFile mutation: %w", err)
+	}
+
+	return &result.CreateFile, nil
+}
 
 // GetMemberByUserID fetches the Member whose userId matches the Cognito sub.
 func (c *Client) GetMemberByUserID(ctx context.Context, userID string) (*Member, error) {

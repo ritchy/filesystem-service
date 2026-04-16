@@ -27,9 +27,11 @@ func init() {
 	listCmd.RunE = withAutoLogin(runList)
 	downloadCmd.RunE = withAutoLogin(runDownload)
 	renameCmd.RunE = withAutoLogin(runRename)
+	createCmd.RunE = withAutoLogin(runCreate)
 
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(downloadCmd)
 	rootCmd.AddCommand(renameCmd)
+	rootCmd.AddCommand(createCmd)
 }

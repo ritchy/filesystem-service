@@ -126,3 +126,60 @@ When any command receives a 401 Unauthorized response from the API, the CLI now 
 
 3. **`cmd/root.go`** – the `init()` function now overrides the `RunE` of `listCmd` and `downloadCmd` with the wrapped versions, so every authenticated command gets the auto-login behaviour without any per-command changes.
    
+# rename functionality
+
+## prompt
+
+I'd like to add rename functionality to the cli so you can rename folders and files:
+
+fs rename /folder/file1.txt /folder/new_name.txt
+fs rename /folder /new_name_of_folder
+
+## completed
+
+The `rename` command is now available. Here's a summary of what was added:
+
+**`api/client.go`** – new `RenameFile(ctx, fileID, newName)` method that issues `PUT {filesAPIEndpoint}files/{id}` with `{ "operation": "rename", "name": newName }`, mirroring the React app's `renameFile()`. Returns `ErrUnauthorized` on 401 like all other methods.
+
+**`cmd/rename.go`** – new command with two required args (source path, destination path):
+- Extracts the new name from the **last segment** of the destination path, so both `fs rename /folder/file1.txt /folder/new_name.txt` and `fs rename /folder /new_name_of_folder` work naturally.
+- Resolves the source path first as a **folder** (via `NavigatePath`), then falls back to a **file** (via `FindFileByPath`), guarding against renaming the root `/`.
+- Prints a clear confirmation: `Renamed folder "old-folder" → "new-folder"`.
+
+**`cmd/root.go`** – `renameCmd.RunE` is wrapped with `withAutoLogin` and the command is registered, so the auto-login behaviour applies here too.
+
+```
+fs rename /folder/file1.txt /folder/new_name.txt   # rename a file
+fs rename /old-folder /new-folder                  # rename a folder
+```
+
+
+# create folder functionality
+
+## prompt
+
+I'd like to add 'create' functionality to the cli so you can create folders:
+
+fs create /folder/new_folder
+
+
+## completed
+
+The `create` command is now available for creating folders.
+
+**`api/filesystem.go`** – new `CreateFolder(ctx, parentFileID, fileFolderID, name)` method that runs the `createFile` GraphQL mutation with `type: "folder"`, timestamps set to now, and the correct `parentFileId` / `fileFolderID` fields — mirroring the React app's `createFolder()`.
+
+**`cmd/create.go`** – new command that takes a single path argument:
+- Extracts the new folder **name** from the last path segment (`/folder/new_folder` → `new_folder`)
+- Derives the **parent path** from everything before it (`/folder`)
+- Navigates to the parent folder via `NavigatePath`, then calls `CreateFolder` with the parent folder's ID and the root `FileFolder.ID`
+- Prints the created folder name and its new ID on success
+
+**`cmd/root.go`** – `createCmd.RunE` is wrapped with `withAutoLogin` and the command is registered.
+
+```
+fs create /documents              # create at root level
+fs create /documents/work         # create a nested folder
+fs create /folder/new_folder      # as requested
+```
+
