@@ -26,8 +26,10 @@ func init() {
 	// automatically triggers the login flow and retries the command.
 	listCmd.RunE = withAutoLogin(runList)
 	downloadCmd.RunE = withAutoLogin(runDownload)
+	renameCmd.RunE = withAutoLogin(runRename)
 
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(downloadCmd)
+	rootCmd.AddCommand(renameCmd)
 }

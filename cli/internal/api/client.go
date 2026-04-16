@@ -109,6 +109,44 @@ func (c *Client) execute(
 	return nil
 }
 
+// RenameFile renames the file or folder identified by fileID to newName.
+// It mirrors the React app's renameFile() call: PUT {filesAPIEndpoint}files/{id}
+// with body { "operation": "rename", "name": newName }.
+func (c *Client) RenameFile(ctx context.Context, fileID string, newName string) error {
+	payload, err := json.Marshal(map[string]string{
+		"operation": "rename",
+		"name":      newName,
+	})
+	if err != nil {
+		return fmt.Errorf("marshal rename request: %w", err)
+	}
+
+	url := fmt.Sprintf("%sfiles/%s", filesAPIEndpoint, fileID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("create rename request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", c.idToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("rename request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("session expired: %w", ErrUnauthorized)
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("server returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 // GetFileInfo fetches metadata for a file or folder from the /info/:id REST
 // endpoint.  The response mirrors the React app's fetchFileInfo() call.
 func (c *Client) GetFileInfo(ctx context.Context, fileID string) (*FileInfo, error) {
