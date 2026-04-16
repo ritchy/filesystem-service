@@ -66,3 +66,15 @@ The `fs download` command has been implemented. Here's what was added:
 - **`cli/README.md`** – documented the two new command examples.
 
 The binary builds and passes `go vet` with zero errors.
+
+
+
+# update 'list' to include file results
+
+## prompt
+
+In the cli, I'd like to update the 'list' results to include Files of type 'file'. In list.go, we currently search for target files of type 'folder' with apiClient.NavigatePath() and returning "path not found" error if it is not a folder. Now I'd like to:
+ - update to include results of File of type 'file'
+ - when a file is of type 'folder', return the same results as currently does
+ - when a file is of type 'file', I'd like to display the file info: name, size, created date, last updated date
+ - file info is retrieved similar to the React app, in api.ts, fetchFileInfo() with a call to: {API_BASE_URL}info/${fileId}

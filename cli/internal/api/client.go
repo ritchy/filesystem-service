@@ -100,6 +100,36 @@ func (c *Client) execute(
 	return nil
 }
 
+// GetFileInfo fetches metadata for a file or folder from the /info/:id REST
+// endpoint.  The response mirrors the React app's fetchFileInfo() call.
+func (c *Client) GetFileInfo(ctx context.Context, fileID string) (*FileInfo, error) {
+	url := fmt.Sprintf("%sinfo/%s", filesAPIEndpoint, fileID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create info request: %w", err)
+	}
+	req.Header.Set("Authorization", c.idToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("info request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("server returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	var info FileInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return nil, fmt.Errorf("decode info response: %w", err)
+	}
+
+	return &info, nil
+}
+
 // DownloadDirect fetches file data from the /direct REST endpoint.
 // The endpoint returns either a 302 redirect to a pre-signed S3 URL (binary
 // files) or a 200 text/plain body (text files stored inline).  Go's default

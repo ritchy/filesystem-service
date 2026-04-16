@@ -20,6 +20,12 @@ type FileItem struct {
 	FileFolderID    string `json:"fileFolderId"`
 }
 
+// FileInfo contains metadata returned by the /info/:id REST endpoint.
+type FileInfo struct {
+	Count string `json:"count"`
+	Size  string `json:"size"`
+}
+
 // FileFolder is the root container belonging to a Member.
 type FileFolder struct {
 	ID         string `json:"id"`
