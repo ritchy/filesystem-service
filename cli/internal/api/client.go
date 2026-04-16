@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,11 @@ const graphQLEndpoint = "https://zkfwgdtvibdpvbn6td4dcurghq.appsync-api.us-east-
 
 // filesAPIEndpoint is the REST API Gateway URL for the files handler.
 const filesAPIEndpoint = "https://i7w0p5qieb.execute-api.us-east-1.amazonaws.com/dev/"
+
+// ErrUnauthorized is returned whenever the API responds with HTTP 401.
+// Callers can use errors.Is(err, api.ErrUnauthorized) to detect an expired
+// or missing session and prompt for re-authentication.
+var ErrUnauthorized = errors.New("unauthorized")
 
 // Client is an authenticated GraphQL client for the filesystem.io AppSync API.
 type Client struct {
@@ -78,6 +84,9 @@ func (c *Client) execute(
 		return fmt.Errorf("read response: %w", err)
 	}
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("session expired: %w", ErrUnauthorized)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("API returned HTTP %d: %s", resp.StatusCode, string(respBody))
 	}
@@ -117,6 +126,9 @@ func (c *Client) GetFileInfo(ctx context.Context, fileID string) (*FileInfo, err
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("session expired: %w", ErrUnauthorized)
+	}
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("server returned HTTP %d: %s", resp.StatusCode, string(body))
@@ -162,6 +174,9 @@ func (c *Client) DownloadDirect(ctx context.Context, fileID string) ([]byte, err
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("session expired: %w", ErrUnauthorized)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("file not found on server")
 	}

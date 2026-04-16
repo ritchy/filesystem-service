@@ -78,3 +78,51 @@ In the cli, I'd like to update the 'list' results to include Files of type 'file
  - when a file is of type 'folder', return the same results as currently does
  - when a file is of type 'file', I'd like to display the file info: name, size, created date, last updated date
  - file info is retrieved similar to the React app, in api.ts, fetchFileInfo() with a call to: {API_BASE_URL}info/${fileId}
+
+## completed 
+
+The `list` command now handles both file and folder paths:
+
+**When the path is a folder** (existing behaviour preserved): `NavigatePath` resolves it and `listFolder` prints the tabular directory listing with name, type, and size columns.
+
+**When the path is a file**: `NavigatePath` fails to find a folder match, so `FindFileByPath` is tried next. On success, `showFileInfo` is called which:
+1. Calls `GetFileInfo(ctx, fileID)` – a new REST method on `Client` that hits `{filesAPIEndpoint}info/{fileId}` exactly as the React app's `fetchFileInfo()` does in `api.ts`.
+2. Displays the file's **name**, **type**, **size** (from the API response, falling back to the locally-formatted `FileItem.Size`), **created date**, and **last updated date** (ISO timestamps parsed and printed as `YYYY-MM-DD HH:MM:SS UTC`).
+
+If neither a folder nor a file is found the original `"path not found"` error is returned.
+
+**Files changed:**
+- `cli/internal/api/filesystem.go` – added `FileInfo` struct `{ Count, Size string }`
+- `cli/internal/api/client.go` – added `GetFileInfo(ctx, fileID)` REST method
+- `cli/cmd/list.go` – split output into `listFolder` / `showFileInfo` helpers; added `formatDate`; updated `runList` to try folder first, then file
+
+
+# redirect to login when running commands
+
+## prompt
+
+In the cli, when running a command like 'fs list', you may not be logged in and get the following error:
+
+'fs list'
+Error: failed to retrieve account info: listMembers query: API returned HTTP 401: {
+  "errors" : [ {
+    "errorType" : "UnauthorizedException",
+    "message" : "Token has expired."
+  } ]
+}
+
+When a HTTP 404: UnauthorizedException is returned, I'd like to automatically redirect them to log in again. As if
+running 'fs login'.
+
+## completed
+
+When any command receives a 401 Unauthorized response from the API, the CLI now automatically triggers the login flow and retries the command — no manual `fs login` needed.
+
+**How it works:**
+
+1. **`api/client.go`** – a new `ErrUnauthorized` sentinel (`var ErrUnauthorized = errors.New("unauthorized")`) is returned (wrapped) whenever the API responds with HTTP 401, across all three callers: `execute()` (GraphQL), `GetFileInfo()`, and `DownloadDirect()`.
+
+2. **`cmd/auth_middleware.go`** (new file) – a `withAutoLogin` wrapper intercepts `api.ErrUnauthorized`, prints `"Session expired. Please log in again."`, runs the interactive `runLogin` flow to collect credentials and save fresh tokens, then automatically retries the original command once.
+
+3. **`cmd/root.go`** – the `init()` function now overrides the `RunE` of `listCmd` and `downloadCmd` with the wrapped versions, so every authenticated command gets the auto-login behaviour without any per-command changes.
+   

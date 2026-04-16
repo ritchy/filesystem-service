@@ -22,6 +22,11 @@ func Execute() {
 }
 
 func init() {
+	// Wrap commands that require authentication so that a 401 response
+	// automatically triggers the login flow and retries the command.
+	listCmd.RunE = withAutoLogin(runList)
+	downloadCmd.RunE = withAutoLogin(runDownload)
+
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(downloadCmd)
