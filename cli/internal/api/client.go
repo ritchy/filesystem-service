@@ -109,6 +109,45 @@ func (c *Client) execute(
 	return nil
 }
 
+// ShareLink is the response from the /share REST endpoint.
+type ShareLink struct {
+	URL     string `json:"url"`
+	Expires string `json:"expires"`
+}
+
+// GetShareLink requests a pre-signed share URL for a file, mirroring the
+// React app's getShareLink() call: GET {filesAPIEndpoint}share?id={fileId}.
+func (c *Client) GetShareLink(ctx context.Context, fileID string) (*ShareLink, error) {
+	url := fmt.Sprintf("%sshare?id=%s", filesAPIEndpoint, fileID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create share request: %w", err)
+	}
+	req.Header.Set("Authorization", c.idToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("share request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("session expired: %w", ErrUnauthorized)
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("server returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	var link ShareLink
+	if err := json.NewDecoder(resp.Body).Decode(&link); err != nil {
+		return nil, fmt.Errorf("decode share response: %w", err)
+	}
+
+	return &link, nil
+}
+
 // RenameFile renames the file or folder identified by fileID to newName.
 // It mirrors the React app's renameFile() call: PUT {filesAPIEndpoint}files/{id}
 // with body { "operation": "rename", "name": newName }.

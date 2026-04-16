@@ -280,3 +280,37 @@ Three command aliases have been added using Cobra's native `Aliases` field — n
 
 Each alias behaves identically to its full command name, including auto-login on 401 and all existing flags/args validation.
 
+
+# add share capability
+
+## prompt
+
+I'd like to add a cli command to 'share' a file, similar to getShareLink() in api.ts. So a call like this:
+
+fs share folder/photo.png
+
+results in a call to {API_BASE_URL}share?id=${fileId} and prints out the resulting URL.
+
+## completed
+
+The `share` command is now available, mirroring the React app's `getShareLink()`.
+
+**`api/client.go`** – new `GetShareLink(ctx, fileID)` method and `ShareLink` struct (`{ URL, Expires string }`). Calls `GET {filesAPIEndpoint}share?id={fileId}` with the ID token, handles 401 like all other REST methods.
+
+**`cmd/share.go`** – new command that:
+1. Resolves the file path to a `FileItem` via `FindFileByPath` (folders are not shareable, so this correctly rejects folder paths)
+2. Calls `GetShareLink` with the file's ID
+3. Prints the file name, expiry time (formatted via the existing `formatDate` helper), and the pre-signed URL
+
+**`cmd/root.go`** – `shareCmd.RunE` wrapped with `withAutoLogin` and registered.
+
+```
+fs share /folder/photo.png
+
+  File:    photo.png
+  Expires: 2026-04-16 22:37:00 UTC
+
+  https://s3.amazonaws.com/...presigned-url...
+```
+
+
