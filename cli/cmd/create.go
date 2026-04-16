@@ -13,8 +13,9 @@ import (
 )
 
 var createCmd = &cobra.Command{
-	Use:   "create <path>",
-	Short: "Create a new folder",
+	Use:     "create <path>",
+	Aliases: []string{"mkdir"},
+	Short:   "Create a new folder",
 	Long: `Create a new folder at the specified path.
 
 All parent directories in the path must already exist.

@@ -14,8 +14,9 @@ import (
 )
 
 var listCmd = &cobra.Command{
-	Use:   "list [path]",
-	Short: "List files and folders",
+	Use:     "list [path]",
+	Aliases: []string{"ls"},
+	Short:   "List files and folders",
 	Long: `List files and folders in your filesystem.
 
 If no path is given, the root directory is listed.

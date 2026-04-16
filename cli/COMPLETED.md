@@ -258,3 +258,25 @@ fs upload file_to_upload.txt /folder/sub-folder   # upload with sub-folder as pa
 fs upload file_to_upload.txt /                    # upload to root folder
 ```
 
+# add aliases
+
+## prompt
+
+I'd like to add aliases to the following commands in the cli:
+
+ - 'fs list' should work with an 'ls' alias: 'fs ls' (same as 'fs list')
+ - 'fs move' should work with a 'mv' alias: 'fs mv' (same as 'fs mv')
+ - 'fs create' should work with a 'mkdir' alias: 'fs mkdir' (same as 'fs create')
+
+## completed
+
+Three command aliases have been added using Cobra's native `Aliases` field — no extra wiring needed, they automatically share the same `RunE` and flags:
+
+| Command | Alias |
+|---------|-------|
+| `fs list` | `fs ls` |
+| `fs move` | `fs mv` |
+| `fs create` | `fs mkdir` |
+
+Each alias behaves identically to its full command name, including auto-login on 401 and all existing flags/args validation.
+

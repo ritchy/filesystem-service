@@ -12,8 +12,9 @@ import (
 )
 
 var moveCmd = &cobra.Command{
-	Use:   "move <source-path> <destination-folder-path>",
-	Short: "Move a file or folder to a different folder",
+	Use:     "move <source-path> <destination-folder-path>",
+	Aliases: []string{"mv"},
+	Short:   "Move a file or folder to a different folder",
 	Long: `Move a file or folder to a different folder by updating its parent.
 
 The destination must be an existing folder – moving to a file is not allowed.
