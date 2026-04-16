@@ -3,3 +3,7 @@ node_modules
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+
+# cli – compiled binaries
+cli/fs
+cli/filesystem
