@@ -19,7 +19,7 @@ import (
 
 const (
 	// clientID is the Cognito User Pool App Client ID from amplify_outputs.json.
-	clientID = "<redacted>"
+	clientID = "7a469p47n22ru33dui20eekclj"
 	// awsRegion is the AWS region where the User Pool is hosted.
 	awsRegion = "us-east-1"
 )
