@@ -65,3 +65,22 @@ Two targeted changes were made to `client/src/App.tsx`:
 1. **`handleTreeSelect`** — Added a `fetchFileInfo` call in the `folder` branch (alongside the existing `fetchChildren` call), so that selecting a folder in the tree now also populates `fileInfo` state via the `/info/{id}` endpoint.
 
 2. **Info column rendering** — Changed the `infoFile` fallback from `selectedTreeItem?.type === 'file' ? selectedTreeItem : null` to simply `selectedTreeItem`, so the Info panel is rendered for any tree-selected item (file or folder), not just files.
+
+
+# update info panel
+
+The Info panel in `client/src/App.tsx` has been updated with the following changes:
+
+- **Removed** the "Type" field row
+- **Added** a "Created" field displaying `infoFile.createdDate` formatted via `toLocaleString()`
+- **Added** a "Last Updated" field displaying `infoFile.lastUpdatedDate` formatted via `toLocaleString()`
+
+Both date values come directly from the selected `FileItem` instance (which already carries `createdDate` and `lastUpdatedDate` per the `FileItem` type), so no API or type changes were needed.
+
+# do not show count
+
+## prompt
+in the info panel, when the selected File is a type 'File', do not show the "count" value. The Count should only be shown on File of type 'Folder'.
+
+## changes
+The "Count" row in the Info panel is now wrapped in a conditional: `{infoFile.type === 'folder' && (...)}`. It will only render when the selected item is a folder — it is hidden for files.
