@@ -31,6 +31,7 @@ func init() {
 	moveCmd.RunE = withAutoLogin(runMove)
 	uploadCmd.RunE = withAutoLogin(runUpload)
 	shareCmd.RunE = withAutoLogin(runShare)
+	deleteCmd.RunE = withAutoLogin(runDelete)
 
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(listCmd)
@@ -40,4 +41,5 @@ func init() {
 	rootCmd.AddCommand(moveCmd)
 	rootCmd.AddCommand(uploadCmd)
 	rootCmd.AddCommand(shareCmd)
+	rootCmd.AddCommand(deleteCmd)
 }

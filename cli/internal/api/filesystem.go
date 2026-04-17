@@ -45,6 +45,39 @@ type Member struct {
 
 // ── API methods ───────────────────────────────────────────────────────────────
 
+// GetFileByID fetches a single FileItem by its ID.
+func (c *Client) GetFileByID(ctx context.Context, fileID string) (*FileItem, error) {
+	const query = `
+	query GetFile($id: ID!) {
+		getFile(id: $id) {
+			id
+			name
+			type
+			size
+			createdDate
+			lastUpdatedDate
+			parentFileId
+			fileFolderId
+		}
+	}`
+
+	variables := map[string]interface{}{"id": fileID}
+
+	var result struct {
+		GetFile *FileItem `json:"getFile"`
+	}
+
+	if err := c.execute(ctx, query, variables, &result); err != nil {
+		return nil, fmt.Errorf("getFile query: %w", err)
+	}
+
+	if result.GetFile == nil {
+		return nil, fmt.Errorf("file not found: %s", fileID)
+	}
+
+	return result.GetFile, nil
+}
+
 // CreateFolder creates a new folder under parentFileID within the given
 // FileFolder container (fileFolderID).  It mirrors the React app's
 // createFolder() which calls client.models.File.create() with type "folder".

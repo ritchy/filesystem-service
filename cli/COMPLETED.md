@@ -313,4 +313,35 @@ fs share /folder/photo.png
   https://s3.amazonaws.com/...presigned-url...
 ```
 
+# add delete functionality
 
+## prompt
+
+I'd like to add a cli command to 'delete' a file or folder. 
+
+ - If a file is deleted, I'd like to follow with a confirmation before deleting
+ - If a folder is deleted, then I'd like to traverse every child under that folder and provide a confirmation for every individual File deletion (including File of type 'folder')
+ - If the user provides a '--force' parameter with an alias of '-f', then provide no confirmation
+
+## completed
+
+The `delete` command (alias `rm`) is now available with full recursive confirmation and `--force`/`-f` support.
+
+**`api/filesystem.go`** – new `GetFileByID(ctx, fileID)` query so the folder being deleted can be displayed by name in the confirmation prompt.
+
+**`api/client.go`** – new `DeleteFiles(ctx, ids)` method: `DELETE {filesAPIEndpoint}files` with `{ "ids": [...] }`, mirroring the React app's `deleteFiles()`.
+
+**`cmd/delete.go`** – new command with:
+- `--force` / `-f` flag to skip all prompts
+- **File path**: resolves via `FindFileByPath`, asks one confirmation, then deletes
+- **Folder path**: calls `collectDescendants()` — a depth-first recursive traversal that lists every child (and sub-child) before its parent, then appends the folder itself — so the confirmation list reads from leaves up to the root folder. Each item is confirmed individually with `[y/N]`
+- All confirmed IDs are sent in a single batch `DeleteFiles` call
+- Prints `Deleted N item(s).` or `Nothing deleted.` as appropriate
+- Root directory deletion is guarded
+
+```
+fs delete /docs/report.pdf             # single file confirmation
+fs delete /old-folder                  # per-item confirmation for all contents
+fs delete /old-folder --force          # no prompts
+fs rm /old-folder -f                   # same via aliases
+```

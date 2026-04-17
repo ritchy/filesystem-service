@@ -109,6 +109,40 @@ func (c *Client) execute(
 	return nil
 }
 
+// DeleteFiles deletes one or more files/folders by ID, mirroring the React
+// app's deleteFiles() call: DELETE {filesAPIEndpoint}files with body { ids }.
+func (c *Client) DeleteFiles(ctx context.Context, ids []string) error {
+	payload, err := json.Marshal(map[string]interface{}{"ids": ids})
+	if err != nil {
+		return fmt.Errorf("marshal delete request: %w", err)
+	}
+
+	url := fmt.Sprintf("%sfiles", filesAPIEndpoint)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("create delete request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", c.idToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("delete request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("session expired: %w", ErrUnauthorized)
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("server returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 // ShareLink is the response from the /share REST endpoint.
 type ShareLink struct {
 	URL     string `json:"url"`
