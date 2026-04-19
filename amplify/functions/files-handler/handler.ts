@@ -50,9 +50,95 @@ Amplify.configure(
 const client = generateClient<Schema>();
 
 /**
+ * Decode a JWT "sub" claim without verifying the signature. API Gateway
+ * already validated the token (or will, once a Cognito authorizer is
+ * attached); this is only used to identify which user's data to return.
+ */
+function extractSubFromAuthHeader(authHeader: string | undefined): string | null {
+  if (!authHeader) return null;
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    // base64url → base64
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+    const decoded = Buffer.from(padded, 'base64').toString('utf8');
+    const parsed = JSON.parse(decoded);
+    return typeof parsed.sub === 'string' ? parsed.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Metadata node returned by the /files/metadata endpoint. Mirrors the stored
+ * File record plus a nested `children` array for folders.
+ */
+interface FileMetadataNode {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+  size: number;
+  fileReference?: string | null;
+  text?: string | null;
+  createdDate: string;
+  lastUpdatedDate: string;
+  parentFileId?: string | null;
+  fileFolderId?: string | null;
+  children?: FileMetadataNode[];
+}
+
+/**
+ * Recursively load the full File tree rooted at rootFileId. The root itself
+ * is returned as a node with its children nested under `children`.
+ */
+async function buildFileTree(rootFileId: string): Promise<FileMetadataNode | null> {
+  const { data: root } = await client.models.File.get({ id: rootFileId });
+  if (!root) return null;
+
+  const node: FileMetadataNode = {
+    id: root.id,
+    name: root.name,
+    type: root.type as 'file' | 'folder',
+    size: root.size || 0,
+    fileReference: root.fileReference,
+    text: root.text,
+    createdDate: root.createdDate,
+    lastUpdatedDate: root.lastUpdatedDate,
+    parentFileId: root.parentFileId,
+    fileFolderId: root.fileFolderId,
+  };
+
+  if (root.type !== 'folder') {
+    return node;
+  }
+
+  // Page through children to handle folders with many items.
+  const children: FileMetadataNode[] = [];
+  let nextToken: string | null | undefined = undefined;
+  do {
+    const page: { data: { id: string }[]; nextToken?: string | null } =
+      await client.models.File.list({
+        filter: { parentFileId: { eq: rootFileId } },
+        nextToken: nextToken ?? undefined,
+      });
+    for (const child of page.data) {
+      const childNode = await buildFileTree(child.id);
+      if (childNode) children.push(childNode);
+    }
+    nextToken = page.nextToken;
+  } while (nextToken);
+
+  node.children = children;
+  return node;
+}
+
+/**
  * Recursively count files and sum sizes for a folder
  */
 async function getFileInfo(fileId: string): Promise<{ count: number; size: number }> {
+
   // Get the file by id
   const { data: file } = await client.models.File.get({ id: fileId });
 
@@ -97,7 +183,104 @@ async function getFileInfo(fileId: string): Promise<{ count: number; size: numbe
 export const handler: APIGatewayProxyHandler = async (event) => {
   console.log('event', event);
 
+  // Handle GET /files/metadata endpoint – return the full nested file tree
+  // for the authenticated user (FileFolder + all File descendants).
+  if (
+    event.httpMethod === 'GET' &&
+    (event.resource === '/files/metadata' || event.path?.endsWith('/files/metadata'))
+  ) {
+    try {
+      const authHeader =
+        event.headers?.Authorization ||
+        event.headers?.authorization ||
+        (event.requestContext as any)?.identity?.authorization;
+
+      const userSub = extractSubFromAuthHeader(authHeader);
+
+      // Locate the caller's FileFolder. We look up by Member.userId first
+      // (the normal app flow), and fall back to the first FileFolder owned
+      // by the caller (owner-based authorization already scopes results).
+      let targetFolderId: string | null = null;
+      let targetRootFileId: string | null = null;
+      let memberId: string | null = null;
+
+      if (userSub) {
+        const { data: members } = await client.models.Member.list({
+          filter: { userId: { eq: userSub } },
+        });
+        const member = members?.[0];
+        if (member) {
+          memberId = member.id;
+          const { data: folders } = await client.models.FileFolder.list({
+            filter: { memberId: { eq: member.id } },
+          });
+          const folder = folders?.[0];
+          if (folder) {
+            targetFolderId = folder.id;
+            targetRootFileId = folder.rootFileId;
+          }
+        }
+      }
+
+      // Fallback: first FileFolder the caller can read.
+      if (!targetFolderId) {
+        const { data: folders } = await client.models.FileFolder.list();
+        const folder = folders?.[0];
+        if (folder) {
+          targetFolderId = folder.id;
+          targetRootFileId = folder.rootFileId;
+        }
+      }
+
+      if (!targetFolderId || !targetRootFileId) {
+        return {
+          statusCode: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ error: 'No FileFolder found for user' }),
+        };
+      }
+
+      const tree = await buildFileTree(targetRootFileId);
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileFolderId: targetFolderId,
+          rootFileId: targetRootFileId,
+          memberId,
+          userId: userSub,
+          generatedAt: new Date().toISOString(),
+          root: tree,
+        }),
+      };
+    } catch (error) {
+      console.error('Error building metadata tree:', error);
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }),
+      };
+    }
+  }
+
   // Handle GET /info/{id} endpoint
+
   if (event.httpMethod === 'GET' && (event.resource === '/info/{id}' || event.path?.match(/\/info\/[^/]+$/))) {
     try {
       // Get the file id from path parameters

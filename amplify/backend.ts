@@ -68,10 +68,17 @@ const filesResource = apiGateway.root.addResource('files');
 filesResource.addMethod('GET', lambdaIntegration);
 filesResource.addMethod('DELETE', lambdaIntegration);
 
+// Add /files/metadata endpoint – full nested tree of the caller's FileFolder.
+// NOTE: Defined BEFORE /files/{id} so API Gateway matches the literal
+// "metadata" path before the {id} path parameter.
+const filesMetadataResource = filesResource.addResource('metadata');
+filesMetadataResource.addMethod('GET', lambdaIntegration);
+
 // Add /files/{id} endpoint for POST and PUT
 const filesIdResource = filesResource.addResource('{id}');
 filesIdResource.addMethod('POST', lambdaIntegration);
 filesIdResource.addMethod('PUT', lambdaIntegration);
+
 
 // Add /info endpoint
 const infoResource = apiGateway.root.addResource('info');
