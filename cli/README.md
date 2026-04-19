@@ -58,6 +58,21 @@ go install .
 You will be prompted for your email and password. Credentials are saved to
 `~/.filesystem/credentials.json` (permissions `0600`).
 
+#### Non-interactive login
+
+For scripts, CI pipelines, or other automation, you can skip the prompts by
+setting both environment variables before running `fs login`:
+
+```sh
+export FS_USERNAME="you@example.com"
+export FS_PASSWORD="your-password"
+./fs login
+```
+
+When both `FS_USERNAME` and `FS_PASSWORD` are set, `fs login` reads the
+credentials from the environment and authenticates without prompting. If only
+one of the two is set, the other will still be requested interactively.
+
 ### List root directory
 
 ```sh

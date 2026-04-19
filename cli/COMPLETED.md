@@ -345,3 +345,22 @@ fs delete /old-folder                  # per-item confirmation for all contents
 fs delete /old-folder --force          # no prompts
 fs rm /old-folder -f                   # same via aliases
 ```
+
+# auto login from env vars
+
+## prompt
+
+I'd like to facilitate the login process when the following environment varables are set:
+
+   - FS_USERNAME
+   - FS_PASSWORD
+
+## completed
+
+Updated `fs login` to support non-interactive authentication via the `FS_USERNAME` and `FS_PASSWORD` environment variables.
+
+- `cli/cmd/login.go`: Added a `readCredentials()` helper that reads `FS_USERNAME` and `FS_PASSWORD`. When both are set, login proceeds without prompting; if only one is set, the other is still prompted for interactively. Original prompt behavior is preserved when neither is set. The same flow is automatically used by the auto-login middleware on 401 responses.
+- `cli/README.md`: Documented the new non-interactive login usage.
+- Verified `go build ./...` succeeds.
+
+

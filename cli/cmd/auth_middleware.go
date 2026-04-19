@@ -29,7 +29,7 @@ func withAutoLogin(fn func(*cobra.Command, []string) error) func(*cobra.Command,
 			return err
 		}
 
-		fmt.Println("\n  Session expired. Please log in again.")
+		//fmt.Println("\n  Session expired. Please log in again.")
 		fmt.Println()
 
 		if loginErr := runLogin(cmd, nil); loginErr != nil {
