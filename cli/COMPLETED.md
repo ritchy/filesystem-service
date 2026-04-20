@@ -364,3 +364,77 @@ Updated `fs login` to support non-interactive authentication via the `FS_USERNAM
 - Verified `go build ./...` succeeds.
 
 
+# auto complete in 2 steps: download metadata as JSON file, then use that for auto-completion in command line
+
+## prompt
+
+I'd like to add a cli command to 'refresh' the metadata. When this command is specified, I'd like to download the metadata 
+as a JSON file from the new endpoint {API_BASE_URL}/files/metadata and keep next to the credentials in the HOME directory 
+(currently ~/.filesystem directory).
+
+   - 'fs refresh'
+   - shows downloading metadata status
+
+When metadata is present in $HOME/.filesystem, I'd like to use that to auto-complete the other commands with files
+and folders as arguments. Examples below:
+
+   - fs list <tab here to find all root folders and files>
+   - fs list /Folder <tab here shows all children Files of '/Folder'>
+   - fs download /Folder/SubFolder/ <tab here shows all children Files of '/Folder/SubFolder'>
+   - the commands: list, move, rename, share, upload, create, delete all take Files as arguments.
+
+## completed
+
+Added `fs refresh` and metadata-powered tab-completion for every path-accepting command.
+
+**New/changed files**
+- `cli/cmd/refresh.go` — new `fs refresh` command. Downloads `{API_URL}/files/metadata`, saves it to `~/.filesystem/metadata.json` (mode `0600`), and prints a folder/file count summary.
+- `cli/cmd/completion.go` — shared cobra completion helpers (`completePath`, `completeRemotePathPos`) that read the cached metadata and return matches. Folders always render with a trailing `/` and the `NoSpace` directive keeps the cursor on the same word so users can keep tabbing to descend.
+- `cli/cmd/root.go` — registers `refreshCmd` (wrapped by the auto-login middleware) and wires `ValidArgsFunction` for every relevant command:
+  - `list`, `download`, `share`, `delete`: files + folders
+  - `rename`: first arg only, files + folders
+  - `create`: folders only (parent folder completion)
+  - `move`: first arg files+folders; second arg folders only
+  - `upload`: first arg is a local file (shell default); second arg is a remote folder
+- `cli/internal/api/client.go` — new `GetMetadata(ctx)` that GETs `/files/metadata` and returns raw JSON bytes.
+- `cli/internal/config/metadata.go` — `Metadata`/`MetadataNode` types, `SaveMetadata`, `LoadMetadata`, and `ResolvePath` / `CompletePath` tree helpers (case-insensitive, supports partial names and trailing slashes).
+- `cli/README.md` — documents `fs refresh` and how to install shell completion in zsh/bash.
+
+**Behavior**
+- `fs refresh` → `Downloading metadata…` → prints saved path, folder/file counts, and the server's `generatedAt` timestamp.
+- If `~/.filesystem/metadata.json` is absent (or unreadable), completion silently falls back to the shell's default file completion — no errors.
+- Supports `fs list <Tab>` (root listing), `fs list /Folder<Tab>` (descend), and `fs download /Folder/Sub/<Tab>` (children of the sub-folder), per spec.
+
+Build: `go build ./...` succeeds; `fs refresh --help` renders correctly.
+
+# refactor 'refresh'
+
+## prompt
+
+I'd like to take a different approach with 'refresh' command and completely re-write.  The metadata is same
+structure as a JSON file. But, rather than calling the endpoint {API_BASE_URL}/files/metadata, I'd like to
+start with current member 'FileFolder' rootFile and recursively get all the decendents. The result
+should be the same metadata JSON file in the HOME directory (currently ~/.filesystem directory).
+
+Same behavior as well:
+   - 'fs refresh'
+   - shows downloading metadata status
+   - contents of this file still drives existing auto-complete functionality
+
+## completed
+
+Rewrote `fs refresh` so it no longer depends on the REST `/files/metadata` endpoint. It now starts from the authenticated member's `FileFolder.rootFileId` and walks the File tree directly via the existing AppSync GraphQL API (`getFile` for the root + `listFiles(parentFileId)` for each folder), producing the same `~/.filesystem/metadata.json` document and driving the same tab-completion behavior as before.
+
+**Changes**
+- `cli/cmd/refresh.go` — complete rewrite:
+  - Loads credentials, extracts the Cognito `sub`, resolves the user's `Member` → `FileFolder.rootFileId`.
+  - `buildTree()` fetches the root node via `GetFileByID` and then recursively walks descendants using `ListFiles(parentFileId)`.
+  - `walkChild()` avoids redundant round-trips by using the `FileItem` data already returned by `ListFiles`.
+  - Serializes a `config.Metadata{ FileFolderID, RootFileID, MemberID, UserID, GeneratedAt, Root }` document (same shape as before) and writes it via `config.SaveMetadata`.
+  - Prints progress (`Downloading metadata…`, `• Looking up account…`, `• Walking file tree…`) and a summary (folder/file counts + timestamp).
+- `cli/internal/api/client.go` — removed the now-unused `GetMetadata` REST method.
+- `cli/internal/api/filesystem.go` — added `fileReference` and `text` to the `getFile` GraphQL selection so the cached JSON captures the fields surfaced by the UI.
+- `cli/README.md` — updated the "Refresh metadata" section to describe the new GraphQL-based traversal.
+
+Tab-completion is unchanged and still reads `~/.filesystem/metadata.json`, so `fs list <Tab>`, `fs list /Folder<Tab>`, `fs download /Folder/Sub/<Tab>`, etc. continue to work exactly as before. Build verified with `go build -o /tmp/fs .`.
+

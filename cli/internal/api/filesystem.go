@@ -54,6 +54,8 @@ func (c *Client) GetFileByID(ctx context.Context, fileID string) (*FileItem, err
 			name
 			type
 			size
+			fileReference
+			text
 			createdDate
 			lastUpdatedDate
 			parentFileId

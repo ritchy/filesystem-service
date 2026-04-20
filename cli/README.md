@@ -7,6 +7,7 @@ A command-line interface for [filesystem.io](https://filesystem.io) written in G
 | Command | Description |
 |---|---|
 | `fs login` | Authenticate with your filesystem.io account |
+| `fs refresh` | Download metadata and cache it for tab-completion |
 | `fs list` | List files and folders in the root directory |
 | `fs list /folder` | List files in a specific folder |
 | `fs list /folder/sub` | List files in a nested folder |
@@ -97,6 +98,44 @@ Example output:
 ```sh
 ./fs list /Documents
 ./fs list /Documents/Work
+```
+
+### Refresh metadata (enables tab-completion)
+
+```sh
+./fs refresh
+```
+
+Walks your filesystem directly via the AppSync GraphQL API: it looks up your
+`Member` record, finds the `rootFileId` of your `FileFolder`, and recursively
+fetches every descendant using `listFiles` queries. The resulting tree is
+cached to `~/.filesystem/metadata.json`.
+
+Once refreshed, shell tab-completion can suggest real file and folder paths
+for every command that accepts a remote path (`list`, `download`, `rename`,
+`create`, `move`, `upload`, `share`, `delete`). Folders are rendered with a
+trailing `/` so you can keep tabbing to descend into them.
+
+Re-run `fs refresh` whenever you add or remove files to keep the completion
+cache up to date.
+
+### Installing shell completion
+
+`fs` uses the [cobra](https://github.com/spf13/cobra) auto-generated completion
+scripts. To enable tab-completion in zsh (one-time setup):
+
+```sh
+# Ensure compinit is loaded (usually already in ~/.zshrc)
+autoload -U compinit && compinit
+
+# Generate and source the completion script
+./fs completion zsh > "${fpath[1]}/_fs"
+```
+
+For bash:
+
+```sh
+./fs completion bash > /usr/local/etc/bash_completion.d/fs
 ```
 
 ## Project Structure
