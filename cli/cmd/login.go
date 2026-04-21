@@ -8,11 +8,15 @@ import (
 	"strings"
 	"syscall"
 
+	"path/filepath"
+
 	"filesystem-cli/internal/auth"
 	"filesystem-cli/internal/config"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
+
+	"github.com/joho/godotenv"
 )
 
 // Environment variables that, when both are set, allow the login flow to
@@ -67,6 +71,15 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// configDir returns the path to ~/.filesystem, creating it if necessary.
+func configDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	return filepath.Join(home, ".filesystem"), nil
+}
+
 // readCredentials resolves the email and password used for login.
 //
 // If both FS_USERNAME and FS_PASSWORD environment variables are set, they
@@ -74,6 +87,12 @@ func runLogin(cmd *cobra.Command, args []string) error {
 // prompted interactively (with individual values still overridable via
 // their matching environment variable).
 func readCredentials() (string, string, error) {
+	dir, err := configDir()
+	if err == nil {
+		envPath := filepath.Join(dir, ".env")
+		_ = godotenv.Load(envPath)
+	}
+
 	envEmail := strings.TrimSpace(os.Getenv(envUsername))
 	envPass := os.Getenv(envPassword)
 
