@@ -7,3 +7,5 @@ amplifyconfiguration*
 # cli – compiled binaries
 cli/fs
 cli/filesystem
+
+dist
