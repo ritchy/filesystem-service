@@ -32,6 +32,7 @@ func init() {
 	uploadCmd.RunE = withAutoLogin(runUpload)
 	shareCmd.RunE = withAutoLogin(runShare)
 	deleteCmd.RunE = withAutoLogin(runDelete)
+	fetchCmd.RunE = withAutoLogin(runFetch)
 	refreshCmd.RunE = withAutoLogin(runRefresh)
 
 	// Wire up tab-completion for commands that accept remote filesystem
@@ -75,6 +76,10 @@ func init() {
 	// delete <path> – files and folders are both valid.
 	deleteCmd.ValidArgsFunction = completePath(true)
 
+	// fetch <url> [remote-folder-path] – first arg is a URL (no completion);
+	// second arg is an optional remote folder.
+	fetchCmd.ValidArgsFunction = completeRemotePathPos(1, false)
+
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(listCmd)
@@ -85,4 +90,5 @@ func init() {
 	rootCmd.AddCommand(uploadCmd)
 	rootCmd.AddCommand(shareCmd)
 	rootCmd.AddCommand(deleteCmd)
+	rootCmd.AddCommand(fetchCmd)
 }

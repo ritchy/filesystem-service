@@ -438,3 +438,24 @@ Rewrote `fs refresh` so it no longer depends on the REST `/files/metadata` endpo
 
 Tab-completion is unchanged and still reads `~/.filesystem/metadata.json`, so `fs list <Tab>`, `fs list /Folder<Tab>`, `fs download /Folder/Sub/<Tab>`, etc. continue to work exactly as before. Build verified with `go build -o /tmp/fs .`.
 
+# add 'fetch' command
+
+## prompt
+
+I'd like to add a new cli command, 'fetch', do download a file from the provided URL.
+ - 'fs fetch https://example.com/file.png' results in download the file to the current directory
+ - 'fs fetch https://example.com/file.png /Folder' results in:
+   - downloading the file to current directory
+   - immediately uploading the file to the specified folder
+ - if the URL provided is not a file, then inform the user and and do nothing
+
+## completed
+
+Added the `fs fetch` command in `cli/cmd/fetch.go` and registered it in `cli/cmd/root.go`. The command supports three behaviors:
+
+1. **`fs fetch <url>`** — Issues a HEAD request to check if the URL points to a downloadable file (by inspecting `Content-Type` and `Content-Disposition` headers). If it does, downloads the file to the current directory using the filename from the response or URL path.
+2. **`fs fetch <url> <remote-folder>`** — Downloads the file locally as above, then automatically uploads it to the specified remote folder in the user's filesystem (reusing the same S3 upload + DB record creation logic as `fs upload`).
+3. **Non-file URLs** — If the URL returns `text/html` or `application/xhtml+xml` (i.e., a web page, not a file), the user is informed and nothing is saved.
+
+The command includes URL validation, filename sanitization, auto-login support, and tab-completion for the remote folder argument.
+
