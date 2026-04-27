@@ -179,6 +179,10 @@ func (c *Client) GetShareLink(ctx context.Context, fileID string) (*ShareLink, e
 		return nil, fmt.Errorf("decode share response: %w", err)
 	}
 
+	//TODO: Amazon API Gateway has POST /shorten and GET /{shortCode} endpoints
+	//TODO: or ->
+	// AWS Lambda: Handles the business logic—one function to generate
+	// unique short IDs and another to perform the 301/302 HTTP redirect.
 	return &link, nil
 }
 
