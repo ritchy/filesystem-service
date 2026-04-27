@@ -740,6 +740,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
       console.log('Generated pre-signed share URL (valid for 3 hours):', presignedUrl);
 
+      //TODO: 
+      // Amazon API Gateway has POST /shorten and GET /{shortCode} endpoints
+      // or ->
+      // AWS Lambda: Handles the business logic—one function to generate
+      // unique short IDs and another to perform the 301/302 HTTP redirect.
+
       // Calculate expiry as ISO date string
       const expires = new Date(Date.now() + expiresIn * 1000).toISOString();
 
