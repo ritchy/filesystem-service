@@ -90,6 +90,31 @@ func listFolder(apiClient *api.Client, ctx context.Context, path string, folderI
 		return fmt.Errorf("failed to list files: %w", err)
 	}
 
+	// ── JSON output ───────────────────────────────────────────────────────────
+	if JSONOutputEnabled {
+		type jsonFileItem struct {
+			Name string `json:"name"`
+			Type string `json:"type"`
+			Size *int   `json:"size,omitempty"`
+			ID   string `json:"id"`
+		}
+		items := make([]jsonFileItem, 0, len(files))
+		for _, f := range files {
+			items = append(items, jsonFileItem{
+				Name: f.Name,
+				Type: f.Type,
+				Size: f.Size,
+				ID:   f.ID,
+			})
+		}
+		printJSON("list", map[string]interface{}{
+			"path":  path,
+			"count": len(files),
+			"items": items,
+		})
+		return nil
+	}
+
 	// ── Output ────────────────────────────────────────────────────────────────
 	displayPath := path
 	if displayPath == "/" || displayPath == "" {
@@ -136,6 +161,20 @@ func showFileInfo(apiClient *api.Client, ctx context.Context, path string, item 
 		sizeStr = info.Size
 	} else if item.Size != nil {
 		sizeStr = formatSize(*item.Size)
+	}
+
+	// ── JSON output ───────────────────────────────────────────────────────────
+	if JSONOutputEnabled {
+		printJSON("list", map[string]interface{}{
+			"path":            path,
+			"name":            item.Name,
+			"type":            "file",
+			"size":            sizeStr,
+			"id":              item.ID,
+			"createdDate":     item.CreatedDate,
+			"lastUpdatedDate": item.LastUpdatedDate,
+		})
+		return nil
 	}
 
 	fmt.Printf("\n  Path: %s\n", path)

@@ -96,7 +96,19 @@ func runMove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("move failed: %w", err)
 	}
 
-	fmt.Printf("\n  Moved %s %q → %s\n\n", itemType, itemName, dstPath)
 	_ = moved
+
+	if JSONOutputEnabled {
+		printJSON("move", map[string]interface{}{
+			"id":          itemID,
+			"name":        itemName,
+			"type":        itemType,
+			"source":      srcPath,
+			"destination": dstPath,
+		})
+		return nil
+	}
+
+	fmt.Printf("\n  Moved %s %q → %s\n\n", itemType, itemName, dstPath)
 	return nil
 }

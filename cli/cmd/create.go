@@ -82,6 +82,16 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create folder: %w", err)
 	}
 
+	if JSONOutputEnabled {
+		printJSON("create", map[string]interface{}{
+			"name": created.Name,
+			"id":   created.ID,
+			"type": "folder",
+			"path": fullPath,
+		})
+		return nil
+	}
+
 	fmt.Printf("\n  Created folder %q (id: %s)\n\n", created.Name, created.ID)
 	return nil
 }

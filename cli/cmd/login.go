@@ -50,7 +50,9 @@ func runLogin(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("Authenticating...")
+	if !JSONOutputEnabled {
+		fmt.Println("Authenticating...")
+	}
 
 	tokens, err := auth.Login(context.Background(), email, password)
 	if err != nil {
@@ -65,6 +67,15 @@ func runLogin(cmd *cobra.Command, args []string) error {
 
 	if err := config.SaveCredentials(creds); err != nil {
 		return fmt.Errorf("failed to save credentials: %w", err)
+	}
+
+	if JSONOutputEnabled {
+		if !suppressLoginJSON {
+			printJSON("login", map[string]interface{}{
+				"message": "Logged in successfully",
+			})
+		}
+		return nil
 	}
 
 	fmt.Println("✓ Logged in successfully!")

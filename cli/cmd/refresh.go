@@ -45,10 +45,14 @@ func runRefresh(cmd *cobra.Command, args []string) error {
 	apiClient := api.NewClient(creds.IDToken)
 	ctx := context.Background()
 
-	fmt.Println("  Downloading metadata…")
+	if !JSONOutputEnabled {
+		fmt.Println("  Downloading metadata…")
+	}
 
 	// ── Resolve user root ─────────────────────────────────────────────────────
-	fmt.Println("  • Looking up account…")
+	if !JSONOutputEnabled {
+		fmt.Println("  • Looking up account…")
+	}
 	member, err := apiClient.GetMemberByUserID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve account info: %w", err)
@@ -58,7 +62,9 @@ func runRefresh(cmd *cobra.Command, args []string) error {
 	}
 
 	// ── Walk the File tree ────────────────────────────────────────────────────
-	fmt.Println("  • Walking file tree…")
+	if !JSONOutputEnabled {
+		fmt.Println("  • Walking file tree…")
+	}
 	var stats refreshStats
 	root, err := buildTree(ctx, apiClient, member.FileFolder.RootFileID, &stats)
 	if err != nil {
@@ -85,8 +91,19 @@ func runRefresh(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
 
-	path, _ := config.MetadataPath()
-	fmt.Printf("  ✓ Saved metadata to %s\n", path)
+	metadataPath, _ := config.MetadataPath()
+
+	if JSONOutputEnabled {
+		printJSON("refresh", map[string]interface{}{
+			"metadataPath": metadataPath,
+			"folders":      stats.folders,
+			"files":        stats.files,
+			"generatedAt":  md.GeneratedAt,
+		})
+		return nil
+	}
+
+	fmt.Printf("  ✓ Saved metadata to %s\n", metadataPath)
 	fmt.Printf("    %d folder(s), %d file(s)\n", stats.folders, stats.files)
 	fmt.Printf("    Generated: %s\n", md.GeneratedAt)
 	return nil

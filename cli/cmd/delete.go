@@ -106,6 +106,14 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(toDelete) == 0 {
+		if JSONOutputEnabled {
+			printJSON("delete", map[string]interface{}{
+				"path":         targetPath,
+				"deletedCount": 0,
+				"deletedIds":   []string{},
+			})
+			return nil
+		}
 		fmt.Println("\n  Nothing to delete.\n")
 		return nil
 	}
@@ -113,19 +121,34 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	// ── Confirm deletions ─────────────────────────────────────────────────────
 	var confirmedIDs []string
 
-	fmt.Println()
-	for _, item := range toDelete {
-		label := item.Name
-		if item.Type == "folder" {
-			label = item.Name + "/"
-		}
-
-		if deleteForce || confirmPrompt(fmt.Sprintf("  Delete %s %q?", item.Type, label)) {
+	// In JSON mode, skip all interactive confirmations (act like --force).
+	if JSONOutputEnabled || deleteForce {
+		for _, item := range toDelete {
 			confirmedIDs = append(confirmedIDs, item.ID)
+		}
+	} else {
+		fmt.Println()
+		for _, item := range toDelete {
+			label := item.Name
+			if item.Type == "folder" {
+				label = item.Name + "/"
+			}
+
+			if confirmPrompt(fmt.Sprintf("  Delete %s %q?", item.Type, label)) {
+				confirmedIDs = append(confirmedIDs, item.ID)
+			}
 		}
 	}
 
 	if len(confirmedIDs) == 0 {
+		if JSONOutputEnabled {
+			printJSON("delete", map[string]interface{}{
+				"path":         targetPath,
+				"deletedCount": 0,
+				"deletedIds":   []string{},
+			})
+			return nil
+		}
 		fmt.Println("\n  Nothing deleted.\n")
 		return nil
 	}
@@ -133,6 +156,15 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	// ── Delete confirmed items ────────────────────────────────────────────────
 	if err := apiClient.DeleteFiles(ctx, confirmedIDs); err != nil {
 		return fmt.Errorf("delete failed: %w", err)
+	}
+
+	if JSONOutputEnabled {
+		printJSON("delete", map[string]interface{}{
+			"path":         targetPath,
+			"deletedCount": len(confirmedIDs),
+			"deletedIds":   confirmedIDs,
+		})
+		return nil
 	}
 
 	fmt.Printf("\n  Deleted %d item(s).\n\n", len(confirmedIDs))

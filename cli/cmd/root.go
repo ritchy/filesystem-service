@@ -11,17 +11,30 @@ var rootCmd = &cobra.Command{
 	Use:   "fs",
 	Short: "filesystem.io CLI tool",
 	Long:  `A command-line interface for interacting with filesystem.io.`,
+	// SilenceUsage prevents cobra from printing the usage/help text on
+	// errors – we handle error presentation ourselves (especially for JSON).
+	SilenceUsage: true,
+	// SilenceErrors prevents cobra from printing errors to stderr so that
+	// in JSON mode we can emit a clean JSON object instead.
+	SilenceErrors: true,
 }
 
 // Execute runs the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		if JSONOutputEnabled {
+			printJSONError("", err)
+		} else {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		os.Exit(1)
 	}
 }
 
 func init() {
+	// Global --json flag available to every sub-command.
+	rootCmd.PersistentFlags().BoolVar(&JSONOutputEnabled, "json", false, "output results as JSON")
+
 	// Wrap commands that require authentication so that a 401 response
 	// automatically triggers the login flow and retries the command.
 	listCmd.RunE = withAutoLogin(runList)

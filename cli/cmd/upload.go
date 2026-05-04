@@ -90,7 +90,9 @@ func runUpload(cmd *cobra.Command, args []string) error {
 
 	// ── Get AWS credentials via Cognito Identity Pool ─────────────────────────
 	// Mirrors fetchAuthSession() → session.identityId || session.userSub
-	fmt.Printf("  Authenticating with AWS…\n")
+	if !JSONOutputEnabled {
+		fmt.Printf("  Authenticating with AWS…\n")
+	}
 	awsCreds, err := auth.GetAWSCredentials(ctx, creds.IDToken)
 	if err != nil {
 		return fmt.Errorf("failed to obtain AWS credentials: %w", err)
@@ -108,7 +110,9 @@ func runUpload(cmd *cobra.Command, args []string) error {
 	s3Key := fmt.Sprintf("files/%s/%d_%s", s3UserID, time.Now().UnixMilli(), fileName)
 
 	// ── Upload to S3 ──────────────────────────────────────────────────────────
-	fmt.Printf("  Uploading %s (%s) → s3://%s/%s\n", fileName, formatSize(len(data)), s3Bucket, s3Key)
+	if !JSONOutputEnabled {
+		fmt.Printf("  Uploading %s (%s) → s3://%s/%s\n", fileName, formatSize(len(data)), s3Bucket, s3Key)
+	}
 
 	if err := putS3Object(ctx, awsCreds, s3Key, fileName, data); err != nil {
 		return fmt.Errorf("S3 upload failed: %w", err)
@@ -118,6 +122,17 @@ func runUpload(cmd *cobra.Command, args []string) error {
 	created, err := apiClient.CreateFile(ctx, parentFolderID, fileFolderID, fileName, s3Key, len(data))
 	if err != nil {
 		return fmt.Errorf("failed to create file record: %w", err)
+	}
+
+	if JSONOutputEnabled {
+		printJSON("upload", map[string]interface{}{
+			"name":       fileName,
+			"id":         created.ID,
+			"remotePath": remotePath,
+			"localPath":  localPath,
+			"bytes":      len(data),
+		})
+		return nil
 	}
 
 	fmt.Printf("\n  ✓ Uploaded %q → %s  (id: %s)\n\n", fileName, remotePath, created.ID)

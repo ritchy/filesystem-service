@@ -9,6 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// suppressLoginJSON is set to true during automatic re-authentication so
+// that the login command does not emit its own JSON output.  In JSON mode
+// the caller's command is the only thing that should produce output.
+var suppressLoginJSON bool
+
 // withAutoLogin wraps a cobra RunE function so that an expired or invalid
 // session is handled transparently:
 //
@@ -29,14 +34,23 @@ func withAutoLogin(fn func(*cobra.Command, []string) error) func(*cobra.Command,
 			return err
 		}
 
-		//fmt.Println("\n  Session expired. Please log in again.")
-		fmt.Println()
+		if !JSONOutputEnabled {
+			//fmt.Println("\n  Session expired. Please log in again.")
+			fmt.Println()
+		}
 
-		if loginErr := runLogin(cmd, nil); loginErr != nil {
+		// Suppress login JSON output during automatic re-auth.
+		suppressLoginJSON = true
+		loginErr := runLogin(cmd, nil)
+		suppressLoginJSON = false
+
+		if loginErr != nil {
 			return fmt.Errorf("re-authentication failed: %w", loginErr)
 		}
 
-		fmt.Println()
+		if !JSONOutputEnabled {
+			fmt.Println()
+		}
 
 		// Retry the original command with the fresh credentials.
 		return fn(cmd, args)

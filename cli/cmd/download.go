@@ -84,7 +84,9 @@ func runDownload(cmd *cobra.Command, args []string) error {
 	}
 
 	// ── Download ──────────────────────────────────────────────────────────────
-	fmt.Printf("  Downloading %s …\n", file.Name)
+	if !JSONOutputEnabled {
+		fmt.Printf("  Downloading %s …\n", file.Name)
+	}
 
 	data, err := apiClient.DownloadDirect(ctx, file.ID)
 	if err != nil {
@@ -94,6 +96,17 @@ func runDownload(cmd *cobra.Command, args []string) error {
 	// ── Save to disk ──────────────────────────────────────────────────────────
 	if err := os.WriteFile(dest, data, 0644); err != nil {
 		return fmt.Errorf("failed to save file: %w", err)
+	}
+
+	if JSONOutputEnabled {
+		printJSON("download", map[string]interface{}{
+			"name":       file.Name,
+			"id":         file.ID,
+			"remotePath": remotePath,
+			"localPath":  dest,
+			"bytes":      len(data),
+		})
+		return nil
 	}
 
 	fmt.Printf("  Saved %d bytes → %s\n\n", len(data), dest)

@@ -68,6 +68,17 @@ func runShare(cmd *cobra.Command, args []string) error {
 	}
 
 	// ── Output ────────────────────────────────────────────────────────────────
+	if JSONOutputEnabled {
+		printJSON("share", map[string]interface{}{
+			"name":    file.Name,
+			"id":      file.ID,
+			"path":    filePath,
+			"url":     link.URL,
+			"expires": link.Expires,
+		})
+		return nil
+	}
+
 	fmt.Printf("\n  File:    %s\n", file.Name)
 	fmt.Printf("  Expires: %s\n", formatDate(link.Expires))
 	fmt.Printf("\n  %s\n\n", link.URL)

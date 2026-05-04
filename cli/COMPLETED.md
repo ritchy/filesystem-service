@@ -459,3 +459,21 @@ Added the `fs fetch` command in `cli/cmd/fetch.go` and registered it in `cli/cmd
 
 The command includes URL validation, filename sanitization, auto-login support, and tab-completion for the remote folder argument.
 
+# add flag for 'json' output
+
+## prompt
+
+In the cli, add a "--json' flag which changes the output of the commands to be JSON
+ - the resulting output should be exclusively JSON and no other output
+
+## completed
+
+Added a global `--json` flag to the CLI that changes all command output to be exclusively JSON. 
+
+The implementation includes:
+- **`cli/cmd/json_output.go`** — New file with the `JSONOutputEnabled` flag, `JSONResponse` envelope struct, and `printJSON`/`printJSONError` helpers
+- **`cli/cmd/root.go`** — Added `--json` as a persistent flag, plus `SilenceUsage`/`SilenceErrors` so errors are emitted as JSON (not mixed with usage text)
+- **All 10 command files** (`list`, `create`, `delete`, `download`, `rename`, `move`, `upload`, `share`, `fetch`, `refresh`, `login`) — Each command checks `JSONOutputEnabled` and outputs a single `{"success": true, "command": "...", "data": {...}}` JSON object instead of formatted text. Progress messages (e.g. "Downloading…", "Authenticating with AWS…") are suppressed in JSON mode. Errors produce `{"success": false, "error": "..."}`.
+- **`cli/cmd/auth_middleware.go`** — Auto-login re-authentication is silent in JSON mode (no extra login JSON output), so only the command's result is emitted
+- **`cli/cmd/delete.go`** — In JSON mode, confirmations are auto-skipped (like `--force`) since interactive prompts would break JSON-only output
+- 

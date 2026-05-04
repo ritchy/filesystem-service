@@ -49,7 +49,9 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	}
 
 	// ── HTTP HEAD to pre-check ───────────────────────────────────────────────
-	fmt.Printf("  Checking URL…\n")
+	if !JSONOutputEnabled {
+		fmt.Printf("  Checking URL…\n")
+	}
 	headResp, err := http.Head(rawURL)
 	if err != nil {
 		return fmt.Errorf("failed to reach URL: %w", err)
@@ -65,6 +67,15 @@ func runFetch(cmd *cobra.Command, args []string) error {
 
 	// Decide whether this looks like a downloadable file.
 	if !isDownloadableResource(contentType, contentDisp) {
+		if JSONOutputEnabled {
+			printJSON("fetch", map[string]interface{}{
+				"url":         rawURL,
+				"downloaded":  false,
+				"contentType": contentType,
+				"message":     "URL does not point to a downloadable file",
+			})
+			return nil
+		}
 		fmt.Printf("  The URL does not point to a downloadable file (Content-Type: %s).\n", contentType)
 		fmt.Println("  Nothing to do.")
 		return nil
@@ -77,7 +88,9 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	}
 
 	// ── Download ─────────────────────────────────────────────────────────────
-	fmt.Printf("  Downloading %s …\n", fileName)
+	if !JSONOutputEnabled {
+		fmt.Printf("  Downloading %s …\n", fileName)
+	}
 	getResp, err := http.Get(rawURL)
 	if err != nil {
 		return fmt.Errorf("download failed: %w", err)
@@ -96,6 +109,15 @@ func runFetch(cmd *cobra.Command, args []string) error {
 	// Double-check the actual body content type in case the HEAD response was different.
 	actualCT := getResp.Header.Get("Content-Type")
 	if actualCT != "" && !isDownloadableResource(actualCT, getResp.Header.Get("Content-Disposition")) {
+		if JSONOutputEnabled {
+			printJSON("fetch", map[string]interface{}{
+				"url":         rawURL,
+				"downloaded":  false,
+				"contentType": actualCT,
+				"message":     "URL does not point to a downloadable file",
+			})
+			return nil
+		}
 		fmt.Printf("  The URL does not point to a downloadable file (Content-Type: %s).\n", actualCT)
 		fmt.Println("  Nothing to do.")
 		return nil
@@ -107,36 +129,66 @@ func runFetch(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save file: %w", err)
 	}
 
-	fmt.Printf("  Saved %d bytes → %s\n", len(data), localDest)
+	if !JSONOutputEnabled {
+		fmt.Printf("  Saved %d bytes → %s\n", len(data), localDest)
+	}
 
 	// ── Optional upload ──────────────────────────────────────────────────────
 	if len(args) < 2 {
+		if JSONOutputEnabled {
+			printJSON("fetch", map[string]interface{}{
+				"url":        rawURL,
+				"downloaded": true,
+				"fileName":   fileName,
+				"localPath":  localDest,
+				"bytes":      len(data),
+				"uploaded":   false,
+			})
+			return nil
+		}
 		fmt.Println()
 		return nil
 	}
 
 	remotePath := args[1]
-	fmt.Printf("\n  Uploading to %s …\n", remotePath)
+	if !JSONOutputEnabled {
+		fmt.Printf("\n  Uploading to %s …\n", remotePath)
+	}
 
-	if err := uploadFetchedFile(fileName, data, remotePath); err != nil {
+	uploadedID, err := uploadFetchedFile(fileName, data, remotePath)
+	if err != nil {
 		return err
+	}
+
+	if JSONOutputEnabled {
+		printJSON("fetch", map[string]interface{}{
+			"url":        rawURL,
+			"downloaded": true,
+			"fileName":   fileName,
+			"localPath":  localDest,
+			"bytes":      len(data),
+			"uploaded":   true,
+			"remotePath": remotePath,
+			"id":         uploadedID,
+		})
 	}
 
 	return nil
 }
 
 // uploadFetchedFile performs the same steps as `fs upload` but operates on
-// in-memory data instead of reading from disk again.
-func uploadFetchedFile(fileName string, data []byte, remotePath string) error {
+// in-memory data instead of reading from disk again.  Returns the created
+// file ID on success.
+func uploadFetchedFile(fileName string, data []byte, remotePath string) (string, error) {
 	// ── Auth ──────────────────────────────────────────────────────────────────
 	creds, err := config.LoadCredentials()
 	if err != nil {
-		return fmt.Errorf("not logged in – run 'fs login' first")
+		return "", fmt.Errorf("not logged in – run 'fs login' first")
 	}
 
 	userID, err := auth.GetUserIDFromToken(creds.IDToken)
 	if err != nil {
-		return fmt.Errorf("session expired – run 'fs login' again")
+		return "", fmt.Errorf("session expired – run 'fs login' again")
 	}
 
 	apiClient := api.NewClient(creds.IDToken)
@@ -145,11 +197,11 @@ func uploadFetchedFile(fileName string, data []byte, remotePath string) error {
 	// ── Resolve user root ─────────────────────────────────────────────────────
 	member, err := apiClient.GetMemberByUserID(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve account info: %w", err)
+		return "", fmt.Errorf("failed to retrieve account info: %w", err)
 	}
 
 	if member.FileFolder.ID == "" {
-		return fmt.Errorf("no file system found for your account")
+		return "", fmt.Errorf("no file system found for your account")
 	}
 
 	rootFileID := member.FileFolder.RootFileID
@@ -158,14 +210,16 @@ func uploadFetchedFile(fileName string, data []byte, remotePath string) error {
 	// ── Resolve destination folder ────────────────────────────────────────────
 	parentFolderID, err := apiClient.NavigatePath(ctx, rootFileID, remotePath)
 	if err != nil {
-		return fmt.Errorf("destination folder not found: %s (%v)", remotePath, err)
+		return "", fmt.Errorf("destination folder not found: %s (%v)", remotePath, err)
 	}
 
 	// ── Get AWS credentials via Cognito Identity Pool ─────────────────────────
-	fmt.Printf("  Authenticating with AWS…\n")
+	if !JSONOutputEnabled {
+		fmt.Printf("  Authenticating with AWS…\n")
+	}
 	awsCreds, err := auth.GetAWSCredentials(ctx, creds.IDToken)
 	if err != nil {
-		return fmt.Errorf("failed to obtain AWS credentials: %w", err)
+		return "", fmt.Errorf("failed to obtain AWS credentials: %w", err)
 	}
 
 	s3UserID := awsCreds.IdentityID
@@ -177,20 +231,25 @@ func uploadFetchedFile(fileName string, data []byte, remotePath string) error {
 	s3Key := fmt.Sprintf("files/%s/%d_%s", s3UserID, time.Now().UnixMilli(), fileName)
 
 	// ── Upload to S3 ──────────────────────────────────────────────────────────
-	fmt.Printf("  Uploading %s (%s) → s3://%s/%s\n", fileName, formatSize(len(data)), s3Bucket, s3Key)
+	if !JSONOutputEnabled {
+		fmt.Printf("  Uploading %s (%s) → s3://%s/%s\n", fileName, formatSize(len(data)), s3Bucket, s3Key)
+	}
 
 	if err := putS3Object(ctx, awsCreds, s3Key, fileName, data); err != nil {
-		return fmt.Errorf("S3 upload failed: %w", err)
+		return "", fmt.Errorf("S3 upload failed: %w", err)
 	}
 
 	// ── Create File entry in the database ─────────────────────────────────────
 	created, err := apiClient.CreateFile(ctx, parentFolderID, fileFolderID, fileName, s3Key, len(data))
 	if err != nil {
-		return fmt.Errorf("failed to create file record: %w", err)
+		return "", fmt.Errorf("failed to create file record: %w", err)
 	}
 
-	fmt.Printf("\n  ✓ Uploaded %q → %s  (id: %s)\n\n", fileName, remotePath, created.ID)
-	return nil
+	if !JSONOutputEnabled {
+		fmt.Printf("\n  ✓ Uploaded %q → %s  (id: %s)\n\n", fileName, remotePath, created.ID)
+	}
+
+	return created.ID, nil
 }
 
 // isDownloadableResource returns true when the Content-Type / Content-Disposition

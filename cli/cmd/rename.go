@@ -95,6 +95,16 @@ func runRename(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("rename failed: %w", err)
 	}
 
+	if JSONOutputEnabled {
+		printJSON("rename", map[string]interface{}{
+			"id":      itemID,
+			"type":    itemType,
+			"oldName": oldName,
+			"newName": newName,
+		})
+		return nil
+	}
+
 	fmt.Printf("\n  Renamed %s %q → %q\n\n", itemType, oldName, newName)
 	return nil
 }
