@@ -476,4 +476,16 @@ The implementation includes:
 - **All 10 command files** (`list`, `create`, `delete`, `download`, `rename`, `move`, `upload`, `share`, `fetch`, `refresh`, `login`) — Each command checks `JSONOutputEnabled` and outputs a single `{"success": true, "command": "...", "data": {...}}` JSON object instead of formatted text. Progress messages (e.g. "Downloading…", "Authenticating with AWS…") are suppressed in JSON mode. Errors produce `{"success": false, "error": "..."}`.
 - **`cli/cmd/auth_middleware.go`** — Auto-login re-authentication is silent in JSON mode (no extra login JSON output), so only the command's result is emitted
 - **`cli/cmd/delete.go`** — In JSON mode, confirmations are auto-skipped (like `--force`) since interactive prompts would break JSON-only output
-- 
+
+# add -p flag to create to instruct the creation of all sub directories
+
+## prompt
+
+In the cli, add a "-p" flag, or the long form "--parents" for the 'create' command
+ - results in creation of all necessary sub Folders (parent folders) in a single command
+ - for example, 'fs create /folder/sub1/sub2' will create all 3 folders if they do not exist
+ - if the Folders all exists, "-p" should not return an error, but simply state they exists
+
+## completed
+
+Added the `-p` / `--parents` flag to the `fs create` command. When used, it walks each segment of the given path, reuses folders that already exist, and creates any that are missing — all in a single command (like `mkdir -p`). If every folder in the path already exists, it reports that cleanly without returning an error. Both text and `--json` output modes are fully supported, with the JSON response including a `folders` array showing each segment's name, ID, and whether it was created or already existed.
