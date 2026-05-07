@@ -49,6 +49,21 @@ func SaveCredentials(creds *Credentials) error {
 	return nil
 }
 
+// DeleteCredentials removes ~/.filesystem/credentials.json.
+// Returns nil if the file does not exist (already logged out).
+func DeleteCredentials() error {
+	dir, err := configDir()
+	if err != nil {
+		return err
+	}
+
+	credPath := filepath.Join(dir, "credentials.json")
+	if err := os.Remove(credPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove %s: %w", credPath, err)
+	}
+	return nil
+}
+
 // LoadCredentials reads credentials from ~/.filesystem/credentials.json.
 // Returns an error (suitable for display) when the file does not exist.
 func LoadCredentials() (*Credentials, error) {

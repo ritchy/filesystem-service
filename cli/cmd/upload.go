@@ -27,6 +27,8 @@ const (
 	s3Region = "us-east-1"
 )
 
+var uploadParents bool
+
 var uploadCmd = &cobra.Command{
 	Use:   "upload <local-file> <remote-folder-path>",
 	Short: "Upload a local file to your filesystem",
@@ -35,12 +37,20 @@ var uploadCmd = &cobra.Command{
 The file is stored in S3 and a File entry is created in the database,
 mirroring the behaviour of the React app's uploadFile() function.
 
+Use -p / --parents to create the destination folder (and any missing
+intermediate folders) automatically if they do not already exist.
+
 Examples:
   fs upload report.pdf /documents          # upload to /documents
   fs upload notes.txt  /                   # upload to root folder
-  fs upload photo.png  /photos/2024        # upload to a nested folder`,
+  fs upload photo.png  /photos/2024        # upload to a nested folder
+  fs upload -p doc.pdf /a/b/c              # create /a/b/c if needed, then upload`,
 	Args: cobra.ExactArgs(2),
 	RunE: runUpload,
+}
+
+func init() {
+	uploadCmd.Flags().BoolVarP(&uploadParents, "parents", "p", false, "create destination folder path as needed")
 }
 
 func runUpload(cmd *cobra.Command, args []string) error {
@@ -83,7 +93,12 @@ func runUpload(cmd *cobra.Command, args []string) error {
 	fileFolderID := member.FileFolder.ID
 
 	// ── Resolve destination folder ────────────────────────────────────────────
-	parentFolderID, err := apiClient.NavigatePath(ctx, rootFileID, remotePath)
+	var parentFolderID string
+	if uploadParents {
+		parentFolderID, err = apiClient.EnsurePath(ctx, rootFileID, fileFolderID, remotePath)
+	} else {
+		parentFolderID, err = apiClient.NavigatePath(ctx, rootFileID, remotePath)
+	}
 	if err != nil {
 		return fmt.Errorf("destination folder not found: %s (%v)", remotePath, err)
 	}

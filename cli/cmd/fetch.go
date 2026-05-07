@@ -20,6 +20,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var fetchParents bool
+
 var fetchCmd = &cobra.Command{
 	Use:   "fetch <url> [remote-folder-path]",
 	Short: "Download a file from a URL",
@@ -28,15 +30,23 @@ var fetchCmd = &cobra.Command{
 If a remote folder path is also supplied the downloaded file is automatically
 uploaded to that folder in your filesystem.
 
+Use -p / --parents to create the destination folder (and any missing
+intermediate folders) automatically if they do not already exist.
+
 The command inspects the HTTP response to determine whether the URL points to
 a downloadable file.  If it does not (e.g. an HTML page), you will be
 informed and nothing is saved.
 
 Examples:
-  fs fetch https://example.com/file.png                # save to ./file.png
-  fs fetch https://example.com/file.png /documents      # save locally AND upload to /documents`,
+  fs fetch https://example.com/file.png                  # save to ./file.png
+  fs fetch https://example.com/file.png /documents        # save locally AND upload to /documents
+  fs fetch -p https://example.com/file.png /a/b/c         # create /a/b/c if needed, then upload`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: runFetch,
+}
+
+func init() {
+	fetchCmd.Flags().BoolVarP(&fetchParents, "parents", "p", false, "create destination folder path as needed")
 }
 
 func runFetch(cmd *cobra.Command, args []string) error {
@@ -208,7 +218,12 @@ func uploadFetchedFile(fileName string, data []byte, remotePath string) (string,
 	fileFolderID := member.FileFolder.ID
 
 	// ── Resolve destination folder ────────────────────────────────────────────
-	parentFolderID, err := apiClient.NavigatePath(ctx, rootFileID, remotePath)
+	var parentFolderID string
+	if fetchParents {
+		parentFolderID, err = apiClient.EnsurePath(ctx, rootFileID, fileFolderID, remotePath)
+	} else {
+		parentFolderID, err = apiClient.NavigatePath(ctx, rootFileID, remotePath)
+	}
 	if err != nil {
 		return "", fmt.Errorf("destination folder not found: %s (%v)", remotePath, err)
 	}

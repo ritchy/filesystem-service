@@ -94,6 +94,7 @@ func init() {
 	fetchCmd.ValidArgsFunction = completeRemotePathPos(1, false)
 
 	rootCmd.AddCommand(loginCmd)
+	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(downloadCmd)

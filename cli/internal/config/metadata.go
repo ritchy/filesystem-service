@@ -77,6 +77,19 @@ func SaveMetadata(raw []byte) error {
 	return nil
 }
 
+// DeleteMetadata removes ~/.filesystem/metadata.json.
+// Returns nil if the file does not exist.
+func DeleteMetadata() error {
+	path, err := MetadataPath()
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove %s: %w", path, err)
+	}
+	return nil
+}
+
 // LoadMetadata reads the cached metadata JSON and decodes it into a Metadata
 // structure. If the file does not exist, (nil, nil) is returned so callers
 // can degrade gracefully (e.g. shell completion).

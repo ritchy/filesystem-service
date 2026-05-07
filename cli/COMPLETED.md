@@ -489,3 +489,39 @@ In the cli, add a "-p" flag, or the long form "--parents" for the 'create' comma
 ## completed
 
 Added the `-p` / `--parents` flag to the `fs create` command. When used, it walks each segment of the given path, reuses folders that already exist, and creates any that are missing — all in a single command (like `mkdir -p`). If every folder in the path already exists, it reports that cleanly without returning an error. Both text and `--json` output modes are fully supported, with the JSON response including a `folders` array showing each segment's name, ID, and whether it was created or already existed.
+
+# single call upload/fetch
+
+## prompt
+
+Add the `-p` / `--parents` flag to 'fs upload', 'fs fetch' and 'fs move' commands to instruct the creation of a missing destination folder and any missing sub Folders if they do not exist.
+
+## completion
+
+Added the `-p` / `--parents` flag to `fs upload`, `fs fetch`, and `fs move` commands. When the flag is provided, any missing folders in the destination path are automatically created (like `mkdir -p`).
+
+**Changes made:**
+
+1. **`cli/internal/api/filesystem.go`** — Added `EnsurePath()` method to the API client. It walks each segment of a path, reuses existing folders, and creates any missing ones via the `CreateFolder` mutation. Returns the ID of the final (leaf) folder.
+
+2. **`cli/cmd/upload.go`** — Added `--parents`/`-p` flag. When set, destination folder resolution uses `EnsurePath` instead of `NavigatePath`.
+
+3. **`cli/cmd/fetch.go`** — Added `--parents`/`-p` flag. When set and a remote folder path is provided, the `uploadFetchedFile` helper uses `EnsurePath` to create the destination path before uploading.
+
+4. **`cli/cmd/move.go`** — Added `--parents`/`-p` flag. When set, the destination folder is resolved (or created) via `EnsurePath`.
+
+
+# add logout command
+
+## prompt
+
+Add 'fs logout' command.
+
+## completed
+
+Added the `fs logout` command. It removes `~/.filesystem/credentials.json` and the cached `~/.filesystem/metadata.json`, supports `--json` output, and is wired into the root command right after `login`. The implementation spans three files:
+
+- **`cli/internal/config/credentials.go`** – added `DeleteCredentials()` 
+- **`cli/internal/config/metadata.go`** – added `DeleteMetadata()`
+- **`cli/cmd/logout.go`** – new logout command calling both delete functions
+- **`cli/cmd/root.go`** – registered `logoutCmd`

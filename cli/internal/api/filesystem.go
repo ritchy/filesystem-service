@@ -329,6 +329,52 @@ func (c *Client) FindFileByPath(ctx context.Context, rootFileID string, path str
 	return nil, fmt.Errorf("file '%s' not found", fileName)
 }
 
+// EnsurePath works like NavigatePath but creates any missing folders along the
+// way, similar to `mkdir -p`.  fileFolderID is the FileFolder container that
+// owns the tree.  It returns the ID of the (possibly newly-created) leaf
+// folder.
+func (c *Client) EnsurePath(ctx context.Context, rootFileID, fileFolderID, path string) (string, error) {
+	path = strings.TrimSpace(path)
+	path = strings.Trim(path, "/")
+
+	if path == "" {
+		return rootFileID, nil
+	}
+
+	parts := strings.Split(path, "/")
+	currentID := rootFileID
+
+	for _, part := range parts {
+		if part == "" || part == "." {
+			continue
+		}
+
+		children, err := c.ListFiles(ctx, currentID)
+		if err != nil {
+			return "", fmt.Errorf("listing '%s': %w", part, err)
+		}
+
+		found := false
+		for _, f := range children {
+			if strings.EqualFold(f.Name, part) && f.Type == "folder" {
+				currentID = f.ID
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			created, err := c.CreateFolder(ctx, currentID, fileFolderID, part)
+			if err != nil {
+				return "", fmt.Errorf("creating folder '%s': %w", part, err)
+			}
+			currentID = created.ID
+		}
+	}
+
+	return currentID, nil
+}
+
 // NavigatePath resolves a slash-separated path starting from rootFileID and
 // returns the ID of the folder at the end of the path.
 //

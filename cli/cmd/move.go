@@ -11,20 +11,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var moveParents bool
+
 var moveCmd = &cobra.Command{
 	Use:     "move <source-path> <destination-folder-path>",
 	Aliases: []string{"mv"},
 	Short:   "Move a file or folder to a different folder",
 	Long: `Move a file or folder to a different folder by updating its parent.
 
-The destination must be an existing folder – moving to a file is not allowed.
+The destination must be a folder – moving to a file is not allowed.
 The item keeps its original name; only its location changes.
+
+Use -p / --parents to create the destination folder (and any missing
+intermediate folders) automatically if they do not already exist.
 
 Examples:
   fs move /folder/sub-folder /different_folder   # move a folder
-  fs move /folder/file.txt   /different_folder   # move a file`,
+  fs move /folder/file.txt   /different_folder   # move a file
+  fs move -p /file.txt       /a/b/c              # create /a/b/c if needed, then move`,
 	Args: cobra.ExactArgs(2),
 	RunE: runMove,
+}
+
+func init() {
+	moveCmd.Flags().BoolVarP(&moveParents, "parents", "p", false, "create destination folder path as needed")
 }
 
 func runMove(cmd *cobra.Command, args []string) error {
@@ -83,9 +93,12 @@ func runMove(cmd *cobra.Command, args []string) error {
 	}
 
 	// ── Resolve destination folder ────────────────────────────────────────────
-	// NavigatePath only resolves folders, so this implicitly validates that
-	// the destination is a folder and not a file.
-	destFolderID, err := apiClient.NavigatePath(ctx, rootFileID, dstPath)
+	var destFolderID string
+	if moveParents {
+		destFolderID, err = apiClient.EnsurePath(ctx, rootFileID, member.FileFolder.ID, dstPath)
+	} else {
+		destFolderID, err = apiClient.NavigatePath(ctx, rootFileID, dstPath)
+	}
 	if err != nil {
 		return fmt.Errorf("destination folder not found: %s", dstPath)
 	}
