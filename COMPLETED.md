@@ -531,3 +531,16 @@ Added a new `GET /files/metadata` endpoint to the files-handler Lambda that retu
   - Response shape: `{ fileFolderId, rootFileId, memberId, userId, generatedAt, root: { id, name, type, size, ..., children: [...] } }`.
 
 TypeScript type-checks cleanly via `tsc --noEmit` against the function's tsconfig.
+
+
+
+# missing rootFolder
+
+## prompt
+
+in api.ts, when loading the member.fileFolder(), if there is no 'rootFolder', then create one for the member and set rootFolder to the new one
+
+## completed
+
+Updated `fetchRootFolder` in `client/src/api.ts` to handle the case where a member has no associated `FileFolder`. Instead of throwing an error, the code now creates a root `File` (type: 'folder', name: 'Root') and then creates a `FileFolder` linked to the member via `memberId` with `rootFileId` pointing to the new root file. The newly created folder is then used as `rootFolder` for the rest of the function.
+

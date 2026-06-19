@@ -89,11 +89,41 @@ export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFil
 
     const member = members[0];
 
-    // Get the Member's associated FileFolder
-    const { data: rootFolder } = await member.fileFolder();
+    // Get the Member's associated FileFolder, creating one if it doesn't exist
+    let { data: rootFolder } = await member.fileFolder();
 
     if (!rootFolder) {
-      throw new Error(`No FileFolder found for Member: ${member.id}`);
+      console.log(`No FileFolder found for Member: ${member.id}, creating one...`);
+      const now = new Date().toISOString();
+
+      // Create a root File entry of type 'folder'
+      const { data: rootFile } = await client.models.File.create({
+        name: 'Root',
+        type: 'folder',
+        size: 0,
+        createdDate: now,
+        lastUpdatedDate: now,
+      });
+
+      if (!rootFile) {
+        throw new Error('Failed to create root File for new FileFolder');
+      }
+
+      // Create a FileFolder linked to the member with the root file
+      const { data: newFolder } = await client.models.FileFolder.create({
+        name: 'Root',
+        createdDate: now,
+        lastUpdatedDate: now,
+        rootFileId: rootFile.id,
+        memberId: member.id,
+      });
+
+      if (!newFolder) {
+        throw new Error('Failed to create FileFolder for Member');
+      }
+
+      rootFolder = newFolder;
+      console.log('Created new root folder for member:', rootFolder);
     }
 
     const { data: files } = await client.models.File.list({
