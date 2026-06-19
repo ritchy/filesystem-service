@@ -28,6 +28,7 @@ interface TreeNode {
 
 function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) {
   const [rootFolderId, setRootFolderId] = useState<string>('');
+  const [rootFileId, setRootFileId] = useState<string>('');
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [selectedTreeItem, setSelectedTreeItem] = useState<FileItem | null>(null);
   const [middleColumnItems, setMiddleColumnItems] = useState<FileItem[]>([]);
@@ -75,8 +76,9 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
     try {
       setLoading(true);
       setError(null);
-      const { rootFolderId: id, rootFiles } = await fetchRootFolder();
+      const { rootFolderId: id, rootFileId: fileId, rootFiles } = await fetchRootFolder();
       setRootFolderId(id);
+      setRootFileId(fileId);
       console.log("Fetched root folder ID:", id);
       const nodes: TreeNode[] = rootFiles.map(file => ({
         file,
@@ -757,7 +759,23 @@ function FileSystemApp({ signOut, user }: { signOut?: () => void; user?: any }) 
         ) : (
           <>
             <div className="column">
-              <div className="column-header">File Tree</div>
+              <div className="column-header-with-actions">
+                <span className="column-header-title">File Tree</span>
+                <button
+                  className="tree-create-folder-btn"
+                  title="Create Folder"
+                  onClick={() => {
+                    const parentId = selectedTreeItem?.type === 'folder'
+                      ? selectedTreeItem.id
+                      : selectedTreeItem?.parentFileId || rootFileId;
+                    setModal({ type: 'createFolder', parentId });
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="tree-create-folder-icon">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  </svg>
+                </button>
+              </div>
               {treeData.map((node, idx) => renderTreeNode(node, [idx]))}
             </div>
 

@@ -59,7 +59,7 @@ export const getShareLink = async (fileId: string): Promise<{ url: string; expir
 };
 
 // Fetch root FileFolder and all files, creating the root folder if it doesn't exist
-export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFiles: FileItem[] }> => {
+export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFileId: string; rootFiles: FileItem[] }> => {
   console.log('Fetching root folder and files...');
   try {
     // Get the current authenticated user ID
@@ -146,6 +146,7 @@ export const fetchRootFolder = async (): Promise<{ rootFolderId: string; rootFil
     //console.log('Final root folder data:', { rootFolder, rootFiles });
     return {
       rootFolderId: rootFolder.id,
+      rootFileId: rootFolder.rootFileId,
       rootFiles: rootFiles
     };
   } catch (error) {
